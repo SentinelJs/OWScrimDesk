@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Overwatch Overlay Admin</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f0f0f0; }
+        .container { display: flex; gap: 20px; }
+        .panel { background: white; padding: 20px; border-radius: 8px; flex: 1; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        h2 { margin-top: 0; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], input[type="number"], select { width: 100%; padding: 8px; box-sizing: border-box; }
+        .row { display: flex; gap: 10px; align-items: center; }
+        .preview-img { width: 50px; height: 50px; object-fit: contain; background: #eee; border: 1px solid #ddd; margin-top: 5px; }
+        button#apply-btn { 
+            display: block; width: 100%; padding: 15px; 
+            background: #007bff; color: white; border: none; 
+            font-size: 18px; font-weight: bold; cursor: pointer; 
+            margin-top: 20px; border-radius: 8px; 
+        }
+        button#apply-btn:hover { background: #0056b3; }
+        
+        /* Scene Switcher (Future) */
+        .scene-switcher { margin-bottom: 20px; background: #333; padding: 10px; border-radius: 8px; color: white; }
+        .scene-switcher button { margin-right: 10px; padding: 5px 10px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="scene-switcher">
+        <h3>Scene Control (Placeholder)</h3>
+        <button onclick="alert('Map Select Scene - Not implemented yet')">Map Select</button>
+        <button onclick="alert('Hero Ban Scene - Not implemented yet')">Hero Ban</button>
+        <button disabled style="background: #007bff; color: white;">In-Game Overlay (Active)</button>
+    </div>
+
+    <form id="control-form">
+        <!-- Match Info Panel -->
+        <div class="panel" style="margin-bottom: 20px;">
+            <h2>Match Info</h2>
+            <div class="row">
+                <div class="form-group" style="flex: 1;">
+                    <label>Match Title (Left)</label>
+                    <input type="text" id="match-title-input">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>Set Info (Right)</label>
+                    <input type="text" id="match-set-input">
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <!-- Left Team -->
+            <div class="panel">
+                <h2>Left Team</h2>
+                
+                <div class="form-group">
+                    <label>Team Name</label>
+                    <input type="text" name="left-name" id="left-name">
+                </div>
+
+                <div class="form-group">
+                    <label>Score</label>
+                    <input type="number" name="left-score" id="left-score">
+                </div>
+
+                <div class="form-group">
+                    <label>Role</label>
+                    <div class="row">
+                        <select name="left-role" id="left-role">
+                            <option value="attack">Attack</option>
+                            <option value="defend">Defend</option>
+                        </select>
+                        <input type="checkbox" id="left-show-role" checked> Show
+                    </div>
+                    <label style="margin-top:5px; font-size: 0.9em;">Background Color</label>
+                    <input type="color" id="left-role-color" value="#111111">
+                </div>
+
+                <div class="form-group">
+                    <label>Hero Ban</label>
+                    <div class="row">
+                        <select id="left-ban-select"></select>
+                        <img id="left-ban-preview" class="preview-img" style="margin-top:0;" src="">
+                        <input type="checkbox" id="left-show-ban" checked> Show
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Team Logo</label>
+                    <div class="row">
+                        <input type="file" id="left-logo-upload" accept="image/*">
+                        <input type="checkbox" id="left-show-logo" checked> Show
+                    </div>
+                    <input type="hidden" id="left-logo-path">
+                    <img id="left-logo-preview" class="preview-img" src="">
+                </div>
+            </div>
+
+            <!-- Right Team -->
+            <div class="panel">
+                <h2>Right Team</h2>
+                
+                <div class="form-group">
+                    <label>Team Name</label>
+                    <input type="text" name="right-name" id="right-name">
+                </div>
+
+                <div class="form-group">
+                    <label>Score</label>
+                    <input type="number" name="right-score" id="right-score">
+                </div>
+
+                <div class="form-group">
+                    <label>Role</label>
+                    <div class="row">
+                        <select name="right-role" id="right-role">
+                            <option value="defend">Defend</option>
+                            <option value="attack">Attack</option>
+                        </select>
+                        <input type="checkbox" id="right-show-role" checked> Show
+                    </div>
+                    <label style="margin-top:5px; font-size: 0.9em;">Background Color</label>
+                    <input type="color" id="right-role-color" value="#111111">
+                </div>
+
+                <div class="form-group">
+                    <label>Hero Ban</label>
+                    <div class="row">
+                        <select id="right-ban-select"></select>
+                        <img id="right-ban-preview" class="preview-img" style="margin-top:0;" src="">
+                        <input type="checkbox" id="right-show-ban" checked> Show
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Team Logo</label>
+                    <div class="row">
+                        <input type="file" id="right-logo-upload" accept="image/*">
+                        <input type="checkbox" id="right-show-logo" checked> Show
+                    </div>
+                    <input type="hidden" id="right-logo-path">
+                    <img id="right-logo-preview" class="preview-img" src="">
+                </div>
+            </div>
+        </div>
+
+        <button type="button" id="apply-btn">APPLY TO OVERLAY</button>
+    </form>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+        // 영웅 리스트 가져오기
+        fetch('/api/heroes')
+            .then(res => res.json())
+            .then(files => {
+                const selects = [document.getElementById('left-ban-select'), document.getElementById('right-ban-select')];
+                selects.forEach(sel => {
+                    const defaultOpt = document.createElement('option');
+                    defaultOpt.value = '';
+                    defaultOpt.textContent = '-- None --';
+                    sel.appendChild(defaultOpt);
+                    
+                    files.forEach(f => {
+                        const opt = document.createElement('option');
+                        opt.value = f;
+                        // 확장자(.png 등) 제거하여 표시
+                        opt.textContent = f.replace(/\.[^/.]+$/, "");
+                        sel.appendChild(opt);
+                    });
+                });
+            });
+
+        function updateBanPreview(side, filename) {
+            const img = document.getElementById(`${side}-ban-preview`);
+            if (filename) {
+                img.src = `/img/hero/${filename}`;
+                img.style.display = 'block';
+            } else {
+                img.src = '';
+                img.style.display = 'none';
+            }
+        }
+
+        // 밴 선택 변경 시 미리보기 업데이트
+        document.getElementById('left-ban-select').addEventListener('change', (e) => {
+            updateBanPreview('left', e.target.value);
+        });
+        document.getElementById('right-ban-select').addEventListener('change', (e) => {
+            updateBanPreview('right', e.target.value);
+        });
+
+        // 초기 데이터 수신
+        socket.on('updateState', (state) => {
+            // Match Info
+            document.getElementById('match-title-input').value = state.matchName || '';
+            document.getElementById('match-set-input').value = state.matchSet || '';
+
+            // Left
+            document.getElementById('left-name').value = state.leftTeam.name;
+            document.getElementById('left-score').value = state.leftTeam.score;
+            document.getElementById('left-role').value = state.leftTeam.role;
+            document.getElementById('left-role-color').value = state.leftTeam.roleColor;
+            document.getElementById('left-ban-select').value = state.leftTeam.ban;
+            document.getElementById('left-logo-path').value = state.leftTeam.logo;
+            document.getElementById('left-logo-preview').src = state.leftTeam.logo || '';
+            document.getElementById('left-show-role').checked = state.leftTeam.showRole;
+            document.getElementById('left-show-ban').checked = state.leftTeam.showBan;
+            document.getElementById('left-show-logo').checked = state.leftTeam.showLogo;
+
+            // Right
+            document.getElementById('right-name').value = state.rightTeam.name;
+            document.getElementById('right-score').value = state.rightTeam.score;
+            document.getElementById('right-role').value = state.rightTeam.role;
+            document.getElementById('right-role-color').value = state.rightTeam.roleColor;
+            updateBanPreview('right', state.rightTeam.ban);
+            document.getElementById('right-ban-select').value = state.rightTeam.ban;
+            document.getElementById('right-logo-path').value = state.rightTeam.logo;
+            document.getElementById('right-logo-preview').src = state.rightTeam.logo || '';
+            document.getElementById('right-show-role').checked = state.rightTeam.showRole;
+            document.getElementById('right-show-ban').checked = state.rightTeam.showBan;
+            document.getElementById('right-show-logo').checked = state.rightTeam.showLogo;
+        });
+
+        // 로고 업로드 처리
+        function handleFileUpload(inputId, hiddenId, previewId) {
+            document.getElementById(inputId).addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const formData = new FormData();
+                formData.append('logoFile', file);
+
+                try {
+                    const res = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await res.json();
+                    document.getElementById(hiddenId).value = data.path;
+                    document.getElementById(previewId).src = data.path;
+                } catch (err) {
+                    console.error('Upload failed', err);
+                    alert('Logo upload failed');
+                }
+            });
+        }
+
+        handleFileUpload('left-logo-upload', 'left-logo-path', 'left-logo-preview');
+        handleFileUpload('right-logo-upload', 'right-logo-path', 'right-logo-preview');
+
+        // Apply 버튼 클릭
+        document.getElementById('apply-btn').addEventListener('click', () => {
+            const newState = {
+                matchName: document.getElementById('match-title-input').value,
+                matchSet: document.getElementById('match-set-input').value,
+                leftTeam: {
+                    name: document.getElementById('left-name').value,
+                    score: document.getElementById('left-score').value,
+                    role: document.getElementById('left-role').value,
+                    roleColor: document.getElementById('left-role-color').value,
+                    ban: document.getElementById('left-ban-select').value,
+                    logo: document.getElementById('left-logo-path').value,
+                    showRole: document.getElementById('left-show-role').checked,
+                    showBan: document.getElementById('left-show-ban').checked,
+                    showLogo: document.getElementById('left-show-logo').checked
+                },
+                rightTeam: {
+                    name: document.getElementById('right-name').value,
+                    score: document.getElementById('right-score').value,
+                    role: document.getElementById('right-role').value,
+                    roleColor: document.getElementById('right-role-color').value,
+                    ban: document.getElementById('right-ban-select').value,
+                    logo: document.getElementById('right-logo-path').value,
+                    showRole: document.getElementById('right-show-role').checked,
+                    showBan: document.getElementById('right-show-ban').checked,
+                    showLogo: document.getElementById('right-show-logo').checked
+                }
+            };
+
+            socket.emit('updateState', newState);
+        });
+
+    </script>
+</body>
+</html>

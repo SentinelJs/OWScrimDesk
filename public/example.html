@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Overlay Preview</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #333; /* 여백용 어두운 배경 */
+        }
+        #container {
+            position: relative;
+            width: 1920px;
+            height: 1080px;
+            transform-origin: top left;
+            background-color: #000;
+        }
+        #background-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('/img/example_background.png');
+            background-size: cover;
+            background-position: center;
+            z-index: 1;
+        }
+        #overlay-frame {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+            z-index: 2;
+            background: transparent;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="background-layer"></div>
+        <iframe id="overlay-frame" src="/" allowtransparency="true"></iframe>
+    </div>
+
+    <script>
+        // 화면 크기에 맞춰 1920x1080 컨테이너 비율 축소
+        function resize() {
+            const baseW = 1920;
+            const baseH = 1080;
+            const windowW = window.innerWidth;
+            const windowH = window.innerHeight;
+            
+            const scale = Math.min(windowW / baseW, windowH / baseH);
+            
+            const container = document.getElementById('container');
+            container.style.transform = `scale(${scale})`;
+            // 중앙 정렬을 원한다면 margin 사용 가능, 여기선 좌상단 고정
+        }
+        
+        window.addEventListener('resize', resize);
+        resize(); // 초기 실행
+    </script>
+</body>
+</html>
