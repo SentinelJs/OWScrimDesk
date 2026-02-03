@@ -38,4 +38,3 @@ npm start
 - 맵 픽: http://localhost:3000/map-pick
 - 영웅 밴: http://localhost:3000/hero-ban
 - 인게임 오버레이: http://localhost:3000/in-game-overlay
-- 방송 오버레이: http://localhost:3000/overlay.html
