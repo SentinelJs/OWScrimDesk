@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>OW2 Map Pick Overlay</title>
+  <style>
+    :root {
+      --bg: #0b0f17;
+      --panel: #111827;
+      --text: #f8fafc;
+      --muted: rgba(255, 255, 255, 0.7);
+      --label-bg: rgba(0, 0, 0, 0.55);
+      --disabled-overlay: rgba(0, 0, 0, 0.55);
+      --header-height: 140px;
+      --mode-header-height: 56px;
+      --map-label-height: 42px;
+      --border-width: 4px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      width: 100vw;
+      height: 100vh;
+      background: #000;
+      color: var(--text);
+      font-family: "Koverwatch", "Teko", "Noto Sans KR", sans-serif;
+      overflow: hidden;
+    }
+
+    @font-face {
+      font-family: "Koverwatch";
+      src: url("/fonts/koverwatch.otf") format("opentype");
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    .overlay {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      background: rgba(0, 0, 0, 0.0);
+    }
+
+    .header {
+      height: clamp(110px, 12vh, var(--header-height));
+      display: grid;
+      grid-template-columns: 1fr 1.4fr 1fr;
+      align-items: center;
+      padding: clamp(12px, 2.2vh, 24px) clamp(16px, 2.5vw, 40px);
+      background: linear-gradient(180deg, rgba(10, 10, 12, 0.9), rgba(10, 10, 12, 0.6));
+      border-bottom: 2px solid rgba(255, 255, 255, 0.08);
+      gap: clamp(8px, 1.2vw, 16px);
+    }
+
+    .team-block {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .team-block.right {
+      justify-content: flex-end;
+    }
+
+    .team-block.right .team-inline {
+      flex-direction: row-reverse;
+    }
+
+    .team-logo {
+      width: clamp(48px, 5vw, 70px);
+      height: clamp(48px, 5vw, 70px);
+      border-radius: 2px;
+      background: transparent;
+      display: block;
+      place-items: center;
+      overflow: hidden;
+      padding: 12px;
+      box-sizing: border-box;
+    }
+
+    .team-logo img {
+      width: 100%;
+      height: 100%;
+      max-width: 100%;
+      max-height: 100%;
+      object-position: center;
+      object-fit: contain;
+      display: block;
+    }
+
+    .team-name {
+      font-size: clamp(22px, 2vw, 36px);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding-bottom: 6px;
+      border-bottom: 4px solid transparent;
+    }
+
+    .pick-indicator {
+      font-size: clamp(16px, 1.4vw, 24px);
+      letter-spacing: 2px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .team-inline {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .center-block {
+      text-align: center;
+    }
+
+    .score-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: clamp(8px, 1.2vw, 16px);
+      margin-bottom: clamp(4px, 0.8vh, 6px);
+    }
+
+    .score-box {
+      width: clamp(48px, 4.2vw, 70px);
+      height: clamp(42px, 4.2vh, 52px);
+      background: #dcb043;
+      color: #0b0f17;
+      display: grid;
+      place-items: center;
+      font-size: clamp(22px, 2.4vw, 32px);
+      font-weight: 700;
+      border-radius: 4px;
+    }
+
+    .match-name {
+      font-size: clamp(18px, 1.7vw, 28px);
+      color: var(--text);
+      padding: 8px 16px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 4px;
+      min-width: 260px;
+    }
+
+    .picking-text {
+      display: none;
+    }
+
+    .modes {
+      flex: 1;
+      display: flex;
+      gap: 0;
+      padding: clamp(12px, 2vh, 20px) clamp(12px, 2vw, 32px) clamp(16px, 2.4vh, 28px);
+    }
+
+    .mode-column {
+      flex: 1;
+      background: rgba(12, 16, 24, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .mode-column + .mode-column {
+      border-left: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .mode-header {
+      height: clamp(40px, 5.5vh, var(--mode-header-height));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.06);
+      font-size: clamp(14px, 1.5vw, 22px);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .mode-header img {
+      height: clamp(26px, 3.2vh, 40px);
+      width: auto;
+      object-fit: contain;
+      display: block;
+    }
+
+    .mode-list {
+      flex: 1;
+      display: grid;
+    }
+
+    .map-card {
+      position: relative;
+      overflow: hidden;
+      border: var(--border-width) solid transparent;
+    }
+
+    .map-image {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      background-color: #1f2937;
+      filter: none;
+    }
+
+    .map-label {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: clamp(30px, 4vh, var(--map-label-height));
+      background: var(--label-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(14px, 1.2vw, 20px);
+      z-index: 3;
+      padding: 0 12px;
+      text-align: center;
+    }
+
+    .map-overlay {
+      position: absolute;
+      inset: 0 0 clamp(30px, 4vh, var(--map-label-height)) 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      z-index: 2;
+      color: #fff;
+      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+      pointer-events: none;
+    }
+
+    .overlay-badge {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 12px 18px;
+      background: rgba(0, 0, 0, 0.7);
+      border-radius: 4px;
+      min-width: 40%;
+      text-align: center;
+      justify-content: center;
+      transform: scale(var(--overlay-scale, 1));
+      transform-origin: center;
+    }
+
+    .overlay-badge.win-badge {
+      background: transparent;
+      padding: 0;
+    }
+
+    .map-overlay.only-name .overlay-badge {
+      min-width: 60%;
+    }
+
+    .map-card.compact .overlay-badge {
+      padding: 8px 12px;
+      gap: 3px;
+      min-width: 50%;
+    }
+
+    .map-card.compact-sm .overlay-badge {
+      padding: 6px 10px;
+      gap: 2px;
+      min-width: 55%;
+    }
+
+    .overlay-team-logo {
+      width: clamp(40px, 4vw, 70px);
+      height: clamp(40px, 4vw, 70px);
+      object-fit: contain;
+      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.55);
+      padding: 6px;
+    }
+
+    .overlay-team-logo.no-bg {
+      background: transparent;
+    }
+
+    .map-card.compact .overlay-team-logo {
+      width: clamp(30px, 3vw, 50px);
+      height: clamp(30px, 3vw, 50px);
+      padding: 4px;
+    }
+
+    .map-card.compact-sm .overlay-team-logo {
+      width: clamp(24px, 2.4vw, 38px);
+      height: clamp(24px, 2.4vw, 38px);
+      padding: 3px;
+    }
+
+    .overlay-team-name {
+      font-size: clamp(16px, 1.6vw, 26px);
+      letter-spacing: 1px;
+      line-height: 1.1;
+    }
+
+    .map-card.compact .overlay-team-name {
+      font-size: clamp(13px, 1.2vw, 20px);
+    }
+
+    .map-card.compact-sm .overlay-team-name {
+      font-size: clamp(11px, 1vw, 16px);
+    }
+
+    .overlay-team-name.large {
+      font-size: clamp(20px, 2vw, 32px);
+      font-weight: 700;
+    }
+
+    .map-card.compact .overlay-team-name.large {
+      font-size: clamp(16px, 1.5vw, 24px);
+    }
+
+    .map-card.compact-sm .overlay-team-name.large {
+      font-size: clamp(13px, 1.2vw, 20px);
+    }
+
+    .win-text {
+      font-size: clamp(16px, 1.4vw, 24px);
+      font-weight: 700;
+      letter-spacing: 2px;
+      line-height: 1.1;
+    }
+
+    .map-card.compact .win-text {
+      font-size: clamp(13px, 1.2vw, 18px);
+      letter-spacing: 1px;
+    }
+
+    .map-card.compact-sm .win-text {
+      font-size: clamp(11px, 1vw, 16px);
+      letter-spacing: 1px;
+    }
+
+    .state-win .map-label,
+    .state-selecting .map-label {
+      background: var(--label-bg);
+    }
+
+    .state-disabled .map-image {
+      filter: grayscale(1);
+    }
+
+    .state-disabled .map-overlay {
+      background: var(--disabled-overlay);
+    }
+
+    .state-disabled .map-label {
+      opacity: 0.6;
+    }
+
+    .empty-state {
+      width: 100%;
+      height: calc(100% - var(--header-height));
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: 28px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay">
+    <header class="header">
+      <div class="team-block" id="team1-block">
+        <div class="team-logo" id="team1-logo"></div>
+        <div class="team-inline">
+          <div class="team-name" id="team1-name"></div>
+          <div class="pick-indicator" id="pick-left"></div>
+        </div>
+      </div>
+      <div class="center-block">
+        <div class="score-row">
+          <div class="score-box" id="score-team1">0</div>
+          <div class="match-name" id="match-name">-</div>
+          <div class="score-box" id="score-team2">0</div>
+        </div>
+        <div class="picking-text" id="picking-text">-</div>
+      </div>
+      <div class="team-block right" id="team2-block">
+        <div class="team-inline">
+          <div class="team-name" id="team2-name"></div>
+          <div class="pick-indicator" id="pick-right"></div>
+        </div>
+        <div class="team-logo" id="team2-logo"></div>
+      </div>
+    </header>
+
+    <main class="modes" id="modes"></main>
+    <div class="empty-state hidden" id="empty-state">표시할 맵 풀이 없습니다.</div>
+  </div>
+
+  <script>
+    const MODE_ORDER = ["control", "hybrid", "push", "flashpoint", "escort"];
+    const MODE_LABELS = {
+      control: "쟁탈",
+      hybrid: "하이브리드",
+      push: "밀기",
+      flashpoint: "플래시포인트",
+      escort: "호위"
+    };
+    const MODE_LOGOS = {
+      control: "/img/maps/쟁탈.png",
+      hybrid: "/img/maps/하이브리드.png",
+      push: "/img/maps/밀기.png",
+      flashpoint: "/img/maps/플래시포인트.png",
+      escort: "/img/maps/호위.png"
+    };
+
+    const wsProtocol = location.protocol === "https:" ? "wss" : "ws";
+    const wsHost = location.host || "localhost:3000";
+    const ws = new WebSocket(`${wsProtocol}://${wsHost}`);
+
+    ws.addEventListener("open", () => {
+      ws.send(JSON.stringify({ type: "overlay:hello" }));
+    });
+
+    ws.addEventListener("message", (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === "overlay:update") {
+        render(data.payload);
+      }
+    });
+
+    ws.addEventListener("close", () => {
+      setTimeout(() => location.reload(), 1500);
+    });
+
+    function render(payload) {
+      if (!payload) return;
+      const settings = payload.settings || {};
+      const teams = payload.teams || {};
+      const state = payload.state || {};
+      const history = payload.history || [];
+      const assets = payload.assets || { maps: [] };
+      const score = payload.score || { team1: 0, team2: 0 };
+
+      const safeTeams = {
+        team1: { id: "team1", name: "Team 1", color: "#e6335a", logo: "", ...(teams.team1 || {}) },
+        team2: { id: "team2", name: "Team 2", color: "#02f7f8", logo: "", ...(teams.team2 || {}) }
+      };
+
+      setHeader(safeTeams, score, settings, state, history);
+
+      const mapPoolsByMode = buildMapPoolsByMode(settings, assets.maps);
+      const activeModes = MODE_ORDER.filter((mode) => (mapPoolsByMode[mode] || []).length > 0);
+
+      const modesContainer = document.getElementById("modes");
+      const emptyState = document.getElementById("empty-state");
+      modesContainer.innerHTML = "";
+
+      if (activeModes.length === 0) {
+        emptyState.classList.remove("hidden");
+        return;
+      }
+
+      emptyState.classList.add("hidden");
+
+      const winMapSet = new Map();
+      const winMapMode = new Map();
+      history.forEach((game) => {
+        if (!game.mapId || !game.winner) return;
+        winMapSet.set(game.mapId, game.winner);
+        const inferredMode = game.mapMode || assets.maps.find((map) => map.id === game.mapId)?.mode || "";
+        if (inferredMode) {
+          winMapMode.set(game.mapId, inferredMode);
+        }
+      });
+
+      const currentSelectedMapId = state.currentMapId || "";
+      const currentMode = state.currentMapMode || "";
+      const selectedBy = getPickingTeam(settings, history, state.currentMatchIndex || 1);
+
+      const modeHasSelectedMap = {};
+      MODE_ORDER.forEach((mode) => {
+        const hasWin = [...winMapMode.entries()].some(([mapId, mapMode]) => mapMode === mode && winMapSet.has(mapId));
+        const hasSelecting = currentMode === mode && !!currentSelectedMapId;
+        modeHasSelectedMap[mode] = hasWin || hasSelecting;
+      });
+
+      const fragment = document.createDocumentFragment();
+      activeModes.forEach((mode) => {
+        const pool = mapPoolsByMode[mode];
+        const column = document.createElement("div");
+        column.className = "mode-column";
+
+        const header = document.createElement("div");
+        header.className = "mode-header";
+        const logoSrc = MODE_LOGOS[mode];
+        if (logoSrc) {
+          const img = document.createElement("img");
+          img.src = logoSrc;
+          img.alt = MODE_LABELS[mode] || mode.toUpperCase();
+          header.appendChild(img);
+        } else {
+          header.textContent = MODE_LABELS[mode] || mode.toUpperCase();
+        }
+        column.appendChild(header);
+
+        const list = document.createElement("div");
+        list.className = "mode-list";
+        list.style.gridTemplateRows = `repeat(${pool.length}, 1fr)`;
+
+        pool.forEach((map) => {
+          const status = getMapStatus(map.id, mode, winMapSet, currentSelectedMapId, currentMode, modeHasSelectedMap, selectedBy, safeTeams);
+          const card = document.createElement("div");
+          card.className = `map-card state-${status.type}`;
+
+          if (status.type === "win") {
+            card.style.borderColor = status.team.color;
+          }
+          if (status.type === "selecting") {
+            card.style.borderColor = status.team.color;
+          }
+
+          const image = document.createElement("div");
+          image.className = "map-image";
+          if (map.imageUrl) {
+            image.style.backgroundImage = `url('${map.imageUrl}')`;
+          }
+          card.appendChild(image);
+
+          const overlay = document.createElement("div");
+          overlay.className = "map-overlay";
+
+          if (status.type === "win") {
+            overlay.style.background = hexToRgba(status.team.color, 0.45);
+          }
+
+          if (status.type === "win" || status.type === "selecting") {
+            const badge = document.createElement("div");
+            badge.className = "overlay-badge";
+            if (status.type === "win") {
+              badge.classList.add("win-badge");
+            }
+
+            if (status.team.logo) {
+              const logo = document.createElement("img");
+              logo.className = "overlay-team-logo";
+              if (status.type === "win") {
+                logo.classList.add("no-bg");
+              }
+              logo.src = status.team.logo;
+              badge.appendChild(logo);
+
+              const name = document.createElement("div");
+              name.className = "overlay-team-name";
+              name.textContent = status.team.name;
+              badge.appendChild(name);
+            } else {
+              overlay.classList.add("only-name");
+              const name = document.createElement("div");
+              name.className = "overlay-team-name large";
+              name.textContent = status.team.name;
+              badge.appendChild(name);
+            }
+
+            if (status.type === "win") {
+              const win = document.createElement("div");
+              win.className = "win-text";
+              win.textContent = "WIN";
+              badge.appendChild(win);
+            }
+
+            overlay.appendChild(badge);
+          }
+
+          if (status.type === "disabled") {
+            overlay.style.background = "var(--disabled-overlay)";
+          }
+
+          card.appendChild(overlay);
+
+          const label = document.createElement("div");
+          label.className = "map-label";
+          label.textContent = map.name;
+
+          if (status.type === "win" || status.type === "selecting") {
+            label.style.background = status.team.color;
+          }
+
+          card.appendChild(label);
+          list.appendChild(card);
+        });
+
+        column.appendChild(list);
+        fragment.appendChild(column);
+      });
+
+      modesContainer.appendChild(fragment);
+      applyCompactClasses();
+    }
+
+    function applyCompactClasses() {
+      const cards = document.querySelectorAll(".map-card");
+      cards.forEach((card) => {
+        const height = card.getBoundingClientRect().height;
+        const labelHeight = card.querySelector(".map-label")?.getBoundingClientRect().height || 0;
+        const availableHeight = Math.max(0, height - labelHeight);
+        const targetHeight = 160;
+        const scale = Math.max(0.65, Math.min(1, availableHeight / targetHeight));
+        card.style.setProperty("--overlay-scale", scale.toFixed(2));
+        card.classList.remove("compact", "compact-sm");
+        if (height <= 110) {
+          card.classList.add("compact-sm");
+        } else if (height <= 150) {
+          card.classList.add("compact");
+        }
+      });
+    }
+
+    function setHeader(teams, score, settings, state, history) {
+      const team1Name = document.getElementById("team1-name");
+      const team2Name = document.getElementById("team2-name");
+      const team1Logo = document.getElementById("team1-logo");
+      const team2Logo = document.getElementById("team2-logo");
+
+      team1Name.textContent = teams.team1.name;
+      team2Name.textContent = teams.team2.name;
+      team1Name.style.borderBottomColor = teams.team1.color;
+      team2Name.style.borderBottomColor = teams.team2.color;
+
+      updateLogo(team1Logo, teams.team1.logo);
+      updateLogo(team2Logo, teams.team2.logo);
+
+      document.getElementById("score-team1").textContent = score.team1 ?? 0;
+      document.getElementById("score-team2").textContent = score.team2 ?? 0;
+      document.getElementById("match-name").textContent = settings.matchName || "-";
+
+      const pickingTeam = getPickingTeam(settings, history, state.currentMatchIndex || 1);
+      document.getElementById("picking-text").textContent = "";
+
+      const pickLeft = document.getElementById("pick-left");
+      const pickRight = document.getElementById("pick-right");
+      if (pickingTeam === "team1") {
+        pickLeft.textContent = "<<< MAP PICK";
+        pickRight.textContent = "";
+      } else if (pickingTeam === "team2") {
+        pickLeft.textContent = "";
+        pickRight.textContent = "MAP PICK >>>";
+      } else {
+        pickLeft.textContent = "";
+        pickRight.textContent = "";
+      }
+    }
+
+    function updateLogo(container, logoUrl) {
+      container.innerHTML = "";
+      if (!logoUrl) {
+        container.style.display = "none";
+        return;
+      }
+      container.style.display = "grid";
+      const img = document.createElement("img");
+      img.src = logoUrl;
+      container.appendChild(img);
+    }
+
+    function buildMapPoolsByMode(settings, maps) {
+      const pools = {};
+      MODE_ORDER.forEach((mode) => {
+        const ids = (settings.mapPool?.[mode] || []).slice(0, 8);
+        const pool = ids.map((id) => {
+          const found = maps.find((map) => map.id === id);
+          if (!found) {
+            return { id, name: id, imageUrl: "" };
+          }
+          return { id: found.id, name: found.name, imageUrl: found.image };
+        });
+        pools[mode] = pool;
+      });
+      return pools;
+    }
+
+    function getPickingTeam(settings, history, gameIndex) {
+      const initial = settings.firstPickTeamId || "team1";
+      if (gameIndex <= 1) return initial;
+      const prev = history.find((game) => game.index === gameIndex - 1);
+      if (!prev || !prev.winner) return initial;
+      return prev.winner === "team1" ? "team2" : "team1";
+    }
+
+    function getMapStatus(mapId, mode, winMapSet, currentSelectedMapId, currentMode, modeHasSelectedMap, selectedBy, teams) {
+      if (winMapSet.has(mapId)) {
+        const winner = winMapSet.get(mapId);
+        const team = winner === "team2" ? teams.team2 : teams.team1;
+        return { type: "win", team };
+      }
+      if (mapId === currentSelectedMapId) {
+        const team = selectedBy === "team2" ? teams.team2 : teams.team1;
+        return { type: "selecting", team };
+      }
+      if (modeHasSelectedMap[mode]) {
+        return { type: "disabled" };
+      }
+      return { type: "unselected" };
+    }
+
+    function hexToRgba(hex, alpha) {
+      const clean = hex.replace("#", "");
+      const num = parseInt(clean, 16);
+      const r = (num >> 16) & 255;
+      const g = (num >> 8) & 255;
+      const b = num & 255;
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OW2 내전 관리</title>
+  <link rel="stylesheet" href="/css/admin.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">OW2 내전 관리</div>
+    <nav class="tabs" id="tabs">
+      <button data-tab="team" class="active">Team</button>
+      <button data-tab="ingame">In-Game</button>
+      <button data-tab="history">History</button>
+      <button data-tab="match">Match Info</button>
+    </nav>
+    <div class="status" id="wsStatus">WS 연결중...</div>
+  </header>
+  <div class="team-identity" id="teamIdentity"></div>
+
+  <main class="container">
+    <section id="tab-team" class="tab active">
+      <h2>Team</h2>
+      <button class="secondary" id="refreshTeam">최신 정보 불러오기</button>
+      <div class="grid two">
+        <div class="card">
+          <h3>Team 1</h3>
+          <label>팀 이름<input id="team1-name" type="text" autocomplete="off" /></label>
+          <label>팀 색상
+            <div class="color-row">
+              <input id="team1-color" type="color" />
+              <span class="color-swatch" id="team1-color-swatch"></span>
+            </div>
+          </label>
+          <label>로고 업로드<input id="team1-logo-file" type="file" accept="image/*" /></label>
+          <div class="logo-actions">
+            <button class="secondary" id="team1-logo-clear">로고 제거</button>
+            <button class="secondary" id="team1-logo-color">로고 색 추출</button>
+          </div>
+          <div class="logo-preview" id="team1-logo-preview"></div>
+        </div>
+        <div class="card">
+          <h3>Team 2</h3>
+          <label>팀 이름<input id="team2-name" type="text" autocomplete="off" /></label>
+          <label>팀 색상
+            <div class="color-row">
+              <input id="team2-color" type="color" />
+              <span class="color-swatch" id="team2-color-swatch"></span>
+            </div>
+          </label>
+          <label>로고 업로드<input id="team2-logo-file" type="file" accept="image/*" /></label>
+          <div class="logo-actions">
+            <button class="secondary" id="team2-logo-clear">로고 제거</button>
+            <button class="secondary" id="team2-logo-color">로고 색 추출</button>
+          </div>
+          <div class="logo-preview" id="team2-logo-preview"></div>
+        </div>
+      </div>
+      <button class="primary" id="saveTeams">저장 후 반영하기</button>
+    </section>
+
+    <section id="tab-ingame" class="tab">
+      <h2>In-Game</h2>
+      <button class="secondary" id="refreshInGame">최신 정보 불러오기</button>
+      <div class="info-bar" id="sideOwnerBar"></div>
+      <div class="card" id="layoutSwapCard">
+        <div class="layout-row">
+          <label class="inline"><input type="checkbox" id="layout-auto" /> 자동 반전 사용</label>
+          <label class="inline"><input type="checkbox" id="layout-swap" /> 오버레이 팀 위치 반전</label>
+        </div>
+      </div>
+      <div class="grid two">
+        <div class="card">
+          <h3>현재 맵</h3>
+          <div id="mapPickArea">
+            <label>맵 선택
+              <div class="search-input">
+                <input id="map-input" placeholder="맵 검색" autocomplete="off" />
+                <button type="button" class="clear-btn" data-clear="map-input" aria-label="검색어 지우기">×</button>
+              </div>
+            </label>
+            <div class="autocomplete" id="map-autocomplete"></div>
+            <div class="actions-row">
+              <button class="secondary" id="applyMap">맵 적용</button>
+            </div>
+          </div>
+          <div id="sideArea" class="side-area">
+            <div class="side-title">공격/수비 선택</div>
+            <label class="side-option"><input type="radio" name="side" value="attack" /> 공격</label>
+            <label class="side-option"><input type="radio" name="side" value="defense" /> 수비</label>
+          </div>
+        </div>
+        <div class="card">
+          <h3>영웅 밴</h3>
+          <div id="heroBanArea">
+            <div class="info-bar" id="banPriorityInfo"></div>
+            <div class="ban-priority" id="banPriorityControls">
+              <label class="inline"><input type="checkbox" id="ban-auto" checked /> 자동 계산 사용</label>
+              <label>영웅밴 선택권 팀(우선팀)
+                <select id="ban-choice-owner" disabled>
+                  <option value="team1">Team 1</option>
+                  <option value="team2">Team 2</option>
+                </select>
+              </label>
+              <div class="ban-order">
+                <div class="caption" id="ban-order-caption"></div>
+                <label class="inline"><input type="radio" name="ban-order" value="A_FIRST" /> Team 1 선밴</label>
+                <label class="inline"><input type="radio" name="ban-order" value="B_FIRST" /> Team 2 선밴</label>
+              </div>
+            </div>
+            <label>Team1 밴
+              <div class="search-input">
+                <input id="ban-team1" placeholder="영웅 검색" autocomplete="off" />
+                <button type="button" class="clear-btn" data-clear="ban-team1" aria-label="검색어 지우기">×</button>
+              </div>
+            </label>
+            <div class="autocomplete" id="ban-team1-autocomplete"></div>
+            <div class="actions-row">
+              <button class="secondary" id="applyBanTeam1">Team1 밴 적용</button>
+            </div>
+            <label>Team2 밴
+              <div class="search-input">
+                <input id="ban-team2" placeholder="영웅 검색" autocomplete="off" />
+                <button type="button" class="clear-btn" data-clear="ban-team2" aria-label="검색어 지우기">×</button>
+              </div>
+            </label>
+            <div class="autocomplete" id="ban-team2-autocomplete"></div>
+            <div class="actions-row">
+              <button class="secondary" id="applyBanTeam2">Team2 밴 적용</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <button class="secondary" id="resetInGameAll">전체 초기화</button>
+      <button class="secondary" id="finishMatch">경기 내용 저장 후 마무리하기</button>
+    </section>
+
+    <section id="tab-history" class="tab">
+      <h2>History</h2>
+      <button class="secondary" id="refreshHistory">최신 정보 불러오기</button>
+      <div class="card">
+        <table class="history-table" id="historyTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th class="map-col">맵</th>
+              <th class="ban-col">밴A</th>
+              <th class="ban-col">밴B</th>
+              <th>승리팀</th>
+              <th>삭제</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <button class="primary" id="saveHistory">저장</button>
+    </section>
+
+    <section id="tab-match" class="tab">
+      <h2>Match Info</h2>
+      <button class="secondary" id="refreshMatch">최신 정보 불러오기</button>
+      <div class="grid two">
+        <div class="card">
+          <label>경기 이름<input id="match-name" type="text" autocomplete="off" /></label>
+          <label>경기 세트 수
+            <select id="match-series">
+              <option value="Bo3">Bo3</option>
+              <option value="Bo5">Bo5</option>
+            </select>
+          </label>
+          <label>초기 선두 팀
+            <select id="first-pick">
+              <option value="team1">Team1</option>
+              <option value="team2">Team2</option>
+            </select>
+          </label>
+          <div class="toggle-row">
+            <label><input type="checkbox" id="toggle-hero" /> 영웅밴 활성화</label>
+            <label><input type="checkbox" id="toggle-map" /> 맵픽 활성화</label>
+          </div>
+        </div>
+        <div class="card" id="mapPoolCard">
+          <h3>맵 풀 설정</h3>
+          <button class="secondary" id="selectAllMaps">맵 전체 선택</button>
+          <div class="map-pool" id="mapPool"></div>
+        </div>
+      </div>
+      <div class="actions-row">
+        <button class="primary" id="saveMatch">저장</button>
+        <button class="secondary" id="resetAll">전체 초기화</button>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal" id="finishModal">
+    <div class="modal-content">
+      <h3>경기 결과 확정</h3>
+      <div class="summary" id="finishSummary"></div>
+      <label>승리 팀
+        <select id="finishWinner">
+          <option value="team1">Team1</option>
+          <option value="team2">Team2</option>
+        </select>
+      </label>
+      <div class="modal-actions">
+        <button class="primary" id="confirmFinish">마무리하기</button>
+        <button class="secondary" id="cancelFinish">취소</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="/js/admin.js" type="module"></script>
+</body>
+</html>

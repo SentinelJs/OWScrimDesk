@@ -1,0 +1,38 @@
+{
+  "matchName": "Espers OW2 1주차 내전",
+  "series": "Bo3",
+  "firstPickTeamId": "team1",
+  "enableHeroBan": true,
+  "enableMapPick": true,
+  "mapPool": {
+    "control": [
+      "남극-반도",
+      "네팔",
+      "리장-타워",
+      "일리오스"
+    ],
+    "hybrid": [
+      "아이헨발데",
+      "미드타운",
+      "왕의-길",
+      "파라이수"
+    ],
+    "flashpoint": [
+      "뉴-정크-시티",
+      "수라바사",
+      "아틀리스"
+    ],
+    "push": [
+      "뉴-퀸-스트리트",
+      "루나사피",
+      "이스페란사",
+      "콜로세오"
+    ],
+    "escort": [
+      "감시-기지-지브롤터",
+      "도라도",
+      "66번-국도",
+      "서킷-로얄"
+    ]
+  }
+}

@@ -1,0 +1,38 @@
+[
+  {
+    "index": 1,
+    "mapId": "아틀리스",
+    "mapName": "아틀리스",
+    "mapMode": "flashpoint",
+    "side": "",
+    "sidePickOwner": "team1",
+    "sidePickReason": "MAP1_INITIAL",
+    "attackTeam": "",
+    "layoutSwap": false,
+    "banChoiceOwner": "team1",
+    "banOrder": "A_FIRST",
+    "bans": {
+      "team1": "라마트라",
+      "team2": "캐서디"
+    },
+    "winner": "team2"
+  },
+  {
+    "index": 2,
+    "mapId": "뉴-퀸-스트리트",
+    "mapName": "뉴 퀸 스트리트",
+    "mapMode": "push",
+    "side": "",
+    "sidePickOwner": "team1",
+    "sidePickReason": "PREV_LOSER",
+    "attackTeam": "",
+    "layoutSwap": false,
+    "banChoiceOwner": "team1",
+    "banOrder": "A_FIRST",
+    "bans": {
+      "team1": "아나",
+      "team2": "라인하르트"
+    },
+    "winner": "team1"
+  }
+]
