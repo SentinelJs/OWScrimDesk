@@ -10,9 +10,9 @@ const MAP_MODE_FOLDERS = {
 };
 
 const HERO_ROLE_FOLDERS = {
-  tank: ["tank", "탱커"],
-  damage: ["damage", "딜러"],
-  support: ["support", "힐러"]
+  tank: ["tank", "돌격"],
+  damage: ["damage", "공격"],
+  support: ["support", "지원"]
 };
 
 function normalizeName(fileName) {
