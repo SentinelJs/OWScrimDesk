@@ -1,7 +1,36 @@
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
+const sharp = require('sharp');
 const { JSDOM } = require('jsdom');
+
+async function downloadImage(url, filepath) {
+    const writer = fs.createWriteStream(filepath);
+    
+    const response = await axios({
+        url,
+        method: 'GET',
+        responseType: 'stream',
+         headers: {
+            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
+             'referer': 'https://namu.wiki/'
+        }
+    });
+
+    response.data.pipe(writer);
+
+    return new Promise((resolve, reject) => {
+        writer.on('finish', resolve);
+        writer.on('error', reject);
+    });
+}
+
+async function convertWebpToPng(inputPath, outputPath) {
+    await sharp(inputPath)
+        .png()
+        .toFile(outputPath);
+    fs.unlinkSync(inputPath); // remove temp file
+}
 
 async function fetchHeroes() {
     try {
@@ -84,6 +113,29 @@ async function fetchHeroes() {
             let roleName = role[1].getAttribute('alt') || role[1].alt;
             roleName = roleName.split(' ')[1]; // get first word
             
+            // Map roleName to directory name
+            const roleDirectoryMap = {
+                '공격': '공격',
+                '돌격': '돌격',
+                '지원': '지원'
+            };
+            
+            const directoryName = roleDirectoryMap[roleName];
+            if (!directoryName) {
+                console.log(`Unknown role: ${roleName}`);
+                continue;
+            }
+
+            const baseDir = path.join(__dirname, 'hero', directoryName);
+            if (!fs.existsSync(baseDir)) {
+                 fs.mkdirSync(baseDir, { recursive: true });
+            }
+
+            // macOS 한글 자소 분리(NFD) 문제 해결을 위해 파일 목록을 미리 읽어 NFC로 정규화
+            const existingFiles = new Set(
+                fs.readdirSync(baseDir).map(file => file.normalize('NFC'))
+            );
+
             let hero_json = []
         
             for (let hero_data of heroes) {
@@ -98,18 +150,40 @@ async function fetchHeroes() {
                 if (hero_data.length < 1) continue;
 
                 let imgElement = hero_data[0].getElementsByClassName("MyRowAll")[0];
-                let name = hero_data[1].textContent.trim(); // used textContent instead of innerText for safety in Node
+                let name = hero_data[1].textContent.trim(); 
+                if (name) name = name.normalize('NFC'); // 텍스트도 NFC 정규화
 
                 if (imgElement && !imgElement.alt.includes("프로그램 아이콘")) {
+                    const imgUrl = "https:" + imgElement.dataset.src;
                      hero_json.push({
-                        "img": "https:" + imgElement.dataset.src,
+                        "img": imgUrl,
                         "name": name
-                    })
+                    });
+
+                    // Check and Download
+                    const fileName = `${name}.png`;
+                    const filePath = path.join(baseDir, fileName);
+                    
+                    if (!existingFiles.has(fileName)) {
+                        console.log(`Downloading ${name} (${roleName})...`);
+                        const tempFile = path.join(baseDir, `${name}.temp`);
+                        try {
+                            await downloadImage(imgUrl, tempFile);
+                            await convertWebpToPng(tempFile, filePath);
+                            console.log(`Saved ${name}.png`);
+                            existingFiles.add(fileName); // 목록에 추가
+                        } catch (err) {
+                            console.error(`Failed to download ${name}:`, err.message);
+                            if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
+                        }
+                    } else {
+                        console.log(`Skipping ${name} (Already exists)`);
+                    }
                 }
             }
         
             console.log("Role:", roleName);
-            console.log(hero_json);
+            // console.log(hero_json);
         }
 
     } catch (error) {
