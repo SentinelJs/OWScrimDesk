@@ -149,12 +149,12 @@ async function fetchHeroes() {
                 
                 if (hero_data.length < 1) continue;
 
-                let imgElement = hero_data[0].getElementsByClassName("MyRowAll")[0];
+                let imgElement = hero_data[0].querySelector('img[src*="namu.wiki"]')
                 let name = hero_data[1].textContent.trim(); 
                 if (name) name = name.normalize('NFC'); // 텍스트도 NFC 정규화
 
                 if (imgElement && !imgElement.alt.includes("프로그램 아이콘")) {
-                    const imgUrl = "https:" + imgElement.dataset.src;
+                    const imgUrl = "https:" + imgElement.src;
                      hero_json.push({
                         "img": imgUrl,
                         "name": name
