@@ -49,6 +49,8 @@ async function fetchMaps() {
         const NodeFilter = dom.window.NodeFilter;
 
         const target = "모드별 전장";
+        const IMG_DOMAIN = "namu";
+        const EXCLUDE = "일반전";
 
         const walker = document.createTreeWalker(
             document.body,
@@ -70,7 +72,7 @@ async function fetchMaps() {
             return;
         }
 
-        let dom_list = [found.parentNode]
+        let dom_list = [found.parentNode];
 
         while (dom_list.length < 3) {
             let last = dom_list.pop();
@@ -81,9 +83,26 @@ async function fetchMaps() {
             }
         }
 
-        // Slice logic from user: dom_list = dom_list.slice(1,6)
-        // Adjust if needed based on actual structure. Assuming user logic is correct for 5 modes.
         dom_list = dom_list.slice(1, 6);
+
+        function getMapSrc(NAME) {
+            const table = [...document.querySelectorAll("table")].find(t => {
+                const txt = t.textContent || "";
+                return txt.includes(NAME) && !txt.includes(EXCLUDE) && t.querySelectorAll("table").length > 1;
+            });
+
+            const link = table && [...table.querySelectorAll("a")]
+                .find(a => (a.textContent || "").includes(NAME));
+
+            const img = link && [...link.querySelectorAll("img")]
+                .find(img => {
+                    const s = img.getAttribute('data-src') || img.src || "";
+                    return s.includes(IMG_DOMAIN);
+                });
+
+            const src = img ? (img.getAttribute('data-src') || img.src) : null;
+            return src || null;
+        }
 
         const modeDirMap = {
             "쟁탈": "쟁탈",
@@ -95,25 +114,25 @@ async function fetchMaps() {
         };
 
         for (let dom of dom_list) {
-            dom = [dom];
+            let domArr = [dom];
 
-            while (dom.length < 2) {
-                let last = dom.pop();
-                if (last && last.children) dom = [...last.children];
+            while (domArr.length < 2) {
+                 let last = domArr.pop();
+                if (last && last.children) domArr = [...last.children];
                 else break;
             }
             
-            if (dom.length < 2) continue;
+            if (domArr.length < 2) continue;
 
-            let maps = [dom[1]]; // The list of maps for this mode
+            let maps = [domArr[1]]; 
 
             while(maps.length < 2) {
-                let last = maps.pop();
+                 let last = maps.pop();
                 if (last && last.children) maps = [...last.children];
                 else break;
             }
 
-            let modeName = dom[0].textContent.trim();
+            let modeName = domArr[0].textContent.trim();
             console.log(`Processing Mode: ${modeName}`);
             
             let dirName = modeDirMap[modeName] || modeName;
@@ -129,110 +148,48 @@ async function fetchMaps() {
             );
 
             for (let map of maps) {
-                // User logic: let pop_ = [...map.children].pop()
                 let children = [...map.children];
                 if (children.length === 0) continue;
                 
-                let pop_ = children.pop(); // The last child usually contains the link
+                let pop_ = children.pop(); 
                 if (!pop_) continue;
 
-                // Sometimes pop_ might not be an anchor (<a>), it might be inside. 
-                // But following user logic: pop_.title, pop_.href
-                // In jsdom, if it's not <a>, href undefined.
+                let title = pop_.getAttribute ? pop_.getAttribute('title') : null;
+                // Fallback if title attribute is missing but text exists (common in list items)
+                if (!title && pop_.textContent) title = pop_.textContent;
                 
-                // If pop_ is not <a>, try to find <a> inside ? 
-                // User script implies pop_ is the 'a' tag or closest to it.
-                // Namuwiki list items usually <li><a ...>Name</a></li> or <li>... <a ...>Name</a></li>
-                
-                // If pop_ is NOT an anchor tag, find one inside?
-                let linkElement = pop_;
-                if (pop_.tagName !== 'A') {
-                    const foundA = pop_.querySelector ? pop_.querySelector('a') : null;
-                    if (foundA) linkElement = foundA;
-                }
+                if (!title) continue;
 
-                if (!linkElement || !linkElement.href) continue;
-
-                let map_name = (linkElement.title || linkElement.textContent).split("(")[0].trim();
-                let map_link = linkElement.href; // likely relative: /w/...
-
+                let map_name = title.split("(")[0].trim();
                 if(map_name) map_name = map_name.normalize('NFC');
                 
-                // Fix map_link if relative
-                if (map_link.startsWith('/')) {
-                    map_link = 'https://namu.wiki' + map_link;
-                }
+                let map_src = getMapSrc(map_name);
 
-                const fileName = `${map_name}.png`;
-                const filePath = path.join(baseDir, fileName);
+                if (map_src) {
+                    if (map_src.startsWith('//')) map_src = 'https:' + map_src;
+                    else if (map_src.startsWith('/')) map_src = 'https://namu.wiki' + map_src;
+                    
+                    const fileName = `${map_name}.png`;
+                    const filePath = path.join(baseDir, fileName);
 
-                if (existingFiles.has(fileName)) {
-                    console.log(`  Skipping ${map_name} (Already exists)`);
-                    continue;
-                }
-
-                console.log(`  Visiting ${map_name} -> ${map_link}`);
-                
-                try {
-                    // Visit map page to find image
-                    const mapPageResponse = await axios.get(map_link, {
-                        headers: {
-                            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36'
-                        }
-                    });
-
-                    const mapDom = new JSDOM(mapPageResponse.data);
-                    const mapDoc = mapDom.window.document;
-                    
-                    // const keyword = map_name
-                    // const img = document.querySelector(`img[alt*="${keyword}"]`);
-                    
-                    // Note: alt attribute might be slightly different or contain special chars.
-                    // Namuwiki images typically have alt which is the filename.
-                    // We try to match keyword.
-                    
-                    // Using attribute selector with contains (*=)
-                    // We need to escape quotes in map_name if any.
-                    const safeKeyword = map_name.replace(/"/g, '\\"');
-                    // Actually querySelector might fail if map_name has complex chars.
-                    // Let's iterate images to be safer or try selector.
-                    
-                    let img = mapDoc.querySelector(`img[alt*="${safeKeyword}"]`);
-
-                    // Try without optional parts? 
-                    // Sometimes map_name is "King's Row", alt is "King's Row.jpg"
-                    
-                    if (!img) {
-                        // Fallback: look for images in the "infobox" or "table" commonly used
-                        // Or try stricter match
-                        // console.log("    Image not found by querySelector, trying loose loop...");
-                        const allImgs = [...mapDoc.querySelectorAll('img')];
-                        img = allImgs.find(i => i.alt && i.alt.includes(map_name) && !i.alt.includes('프로그램 아이콘'));
+                    if (existingFiles.has(fileName)) {
+                        console.log(`  Skipping ${map_name} (Already exists)`);
+                        continue;
                     }
 
-                    if (img) {
-                        let src = img.dataset.src || img.src; // namu wiki often lazy loads with data-src
-                        if (src) {
-                            if (src.startsWith('//')) src = 'https:' + src;
-                            else if (src.startsWith('/')) src = 'https://namu.wiki' + src;
-                            
-                            console.log(`    Downloading image from ${src}`);
-                            const tempFile = path.join(baseDir, `${map_name}.temp`);
-                            await downloadImage(src, tempFile);
-                            await convertWebpToPng(tempFile, filePath);
-                            console.log(`    Saved ${fileName}`);
-                        } else {
-                            console.log(`    Image src not found for ${map_name}`);
-                        }
-                    } else {
-                        console.log(`    Image element not found for ${map_name}`);
+                    console.log(`  Downloading image for ${map_name} from ${map_src}`);
+                    const tempFile = path.join(baseDir, `${map_name}.temp`);
+                    try {
+                        await downloadImage(map_src, tempFile);
+                        await convertWebpToPng(tempFile, filePath);
+                        console.log(`    Saved ${fileName}`);
+                        existingFiles.add(fileName);
+                    } catch (err) {
+                        console.error(`    Failed to download ${map_name}:`, err.message);
+                        if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
                     }
-                    
-                    // Respectful delay
-                    await new Promise(r => setTimeout(r, 500));
-
-                } catch (err) {
-                    console.error(`    Failed to process ${map_name}:`, err.message);
+                } else {
+                    console.log(`  Image source not found for ${map_name}`);
                 }
             }
         }
