@@ -2,11 +2,10 @@ const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
 const sharp = require('sharp');
+sharp.cache(false); // Windows 파일 잠금(EBUSY) 방지
 const { JSDOM } = require('jsdom');
 
-async function downloadImage(url, filepath) {
-    const writer = fs.createWriteStream(filepath);
-    
+async function saveImageDirectly(url, filepath) {
     const response = await axios({
         url,
         method: 'GET',
@@ -17,19 +16,23 @@ async function downloadImage(url, filepath) {
         }
     });
 
-    response.data.pipe(writer);
-
     return new Promise((resolve, reject) => {
+        const writer = fs.createWriteStream(filepath);
+        const transformer = sharp().png();
+
+        response.data
+            .pipe(transformer)
+            .pipe(writer);
+
         writer.on('finish', resolve);
         writer.on('error', reject);
+        response.data.on('error', reject);
+        transformer.on('error', reject);
     });
 }
 
-async function convertWebpToPng(inputPath, outputPath) {
-    await sharp(inputPath)
-        .png()
-        .toFile(outputPath);
-    fs.unlinkSync(inputPath); // remove temp file
+function getSafeName(name) {
+    return name.replace(/[\\/:*?"<>|]/g, ""); // Remove invalid filename chars
 }
 
 async function fetchHeroes() {
@@ -161,20 +164,22 @@ async function fetchHeroes() {
                     });
 
                     // Check and Download
+                    name = getSafeName(name);
                     const fileName = `${name}.png`;
                     const filePath = path.join(baseDir, fileName);
                     
                     if (!existingFiles.has(fileName)) {
                         console.log(`Downloading ${name} (${roleName})...`);
-                        const tempFile = path.join(baseDir, `${name}.temp`);
+                        // Removed temp file logic, stream directly
                         try {
-                            await downloadImage(imgUrl, tempFile);
-                            await convertWebpToPng(tempFile, filePath);
+                            await saveImageDirectly(imgUrl, filePath);
                             console.log(`Saved ${name}.png`);
                             existingFiles.add(fileName); // 목록에 추가
                         } catch (err) {
                             console.error(`Failed to download ${name}:`, err.message);
-                            if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
+                            if (fs.existsSync(filePath) && fs.statSync(filePath).size === 0) {
+                                fs.unlinkSync(filePath);
+                            }
                         }
                     } else {
                         console.log(`Skipping ${name} (Already exists)`);

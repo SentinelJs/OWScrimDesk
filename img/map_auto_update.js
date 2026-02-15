@@ -2,11 +2,10 @@ const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
 const sharp = require('sharp');
+sharp.cache(false); // Windows 파일 잠금(EBUSY) 방지
 const { JSDOM } = require('jsdom');
 
-async function downloadImage(url, filepath) {
-    const writer = fs.createWriteStream(filepath);
-    
+async function saveImageDirectly(url, filepath) {
     const response = await axios({
         url,
         method: 'GET',
@@ -17,19 +16,19 @@ async function downloadImage(url, filepath) {
         }
     });
 
-    response.data.pipe(writer);
-
     return new Promise((resolve, reject) => {
+        const writer = fs.createWriteStream(filepath);
+        const transformer = sharp().png();
+
+        response.data
+            .pipe(transformer)
+            .pipe(writer);
+
         writer.on('finish', resolve);
         writer.on('error', reject);
+        response.data.on('error', reject);
+        transformer.on('error', reject);
     });
-}
-
-async function convertWebpToPng(inputPath, outputPath) {
-    await sharp(inputPath)
-        .png()
-        .toFile(outputPath);
-    fs.unlinkSync(inputPath); // remove temp file
 }
 
 function getSafeMapName(name) {
@@ -164,6 +163,7 @@ async function fetchMaps() {
                 if(map_name) map_name = map_name.normalize('NFC');
                 
                 let map_src = getMapSrc(map_name);
+                map_name = getSafeMapName(map_name);
 
                 if (map_src) {
                     if (map_src.startsWith('//')) map_src = 'https:' + map_src;
@@ -178,15 +178,16 @@ async function fetchMaps() {
                     }
 
                     console.log(`  Downloading image for ${map_name} from ${map_src}`);
-                    const tempFile = path.join(baseDir, `${map_name}.temp`);
+                    // Removed temp file logic, stream directly
                     try {
-                        await downloadImage(map_src, tempFile);
-                        await convertWebpToPng(tempFile, filePath);
+                        await saveImageDirectly(map_src, filePath);
                         console.log(`    Saved ${fileName}`);
                         existingFiles.add(fileName);
                     } catch (err) {
                         console.error(`    Failed to download ${map_name}:`, err.message);
-                        if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
+                        if (fs.existsSync(filePath) && fs.statSync(filePath).size === 0) {
+                             fs.unlinkSync(filePath); // Delete empty file on error
+                        }
                     }
                 } else {
                     console.log(`  Image source not found for ${map_name}`);
