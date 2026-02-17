@@ -32,7 +32,7 @@ async function saveImageDirectly(url, filepath) {
 }
 
 function getSafeName(name) {
-    return name.replace(/[\\/:*?"<>|]/g, ""); // Remove invalid filename chars
+    return name.replace(/[\\/:*?"<>|]/g, "").replace(/[^가-힣a-zA-Z0-9.\s]/g, ''); // Remove invalid filename chars
 }
 
 async function fetchHeroes() {

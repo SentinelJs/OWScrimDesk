@@ -4,4 +4,6 @@ trash/
 .gitignore
 img/maps/
 img/hero/
+video/hero/
 data/
+videos/
