@@ -16,6 +16,7 @@ ensureDir(DATA_DIR);
 
 const DEFAULT_SETTINGS = {
   matchName: "OW2 Scrim",
+  matchLogo: "",
   series: "Bo3",
   firstPickTeamId: "team1",
   enableHeroBan: true,
@@ -28,6 +29,26 @@ const DEFAULT_SETTINGS = {
     escort: []
   }
 };
+
+function normalizeSettings(settings) {
+  const source = settings || {};
+  const mapPool = source.mapPool || {};
+  return {
+    matchName: typeof source.matchName === "string" ? source.matchName : DEFAULT_SETTINGS.matchName,
+    matchLogo: typeof source.matchLogo === "string" ? source.matchLogo : "",
+    series: source.series || DEFAULT_SETTINGS.series,
+    firstPickTeamId: source.firstPickTeamId || DEFAULT_SETTINGS.firstPickTeamId,
+    enableHeroBan: source.enableHeroBan !== false,
+    enableMapPick: source.enableMapPick !== false,
+    mapPool: {
+      control: Array.isArray(mapPool.control) ? mapPool.control : [],
+      hybrid: Array.isArray(mapPool.hybrid) ? mapPool.hybrid : [],
+      flashpoint: Array.isArray(mapPool.flashpoint) ? mapPool.flashpoint : [],
+      push: Array.isArray(mapPool.push) ? mapPool.push : [],
+      escort: Array.isArray(mapPool.escort) ? mapPool.escort : []
+    }
+  };
+}
 
 const DEFAULT_TEAMS = {
   team1: { id: "team1", name: "Team 1", color: "#101014", logo: "" },
@@ -137,7 +158,7 @@ function applyLayoutSwapMeta({ state }) {
 }
 
 function loadAll() {
-  const settings = readJson(path.join(DATA_DIR, "settings.json"), DEFAULT_SETTINGS);
+  const settings = normalizeSettings(readJson(path.join(DATA_DIR, "settings.json"), DEFAULT_SETTINGS));
   const teams = readJson(path.join(DATA_DIR, "teams.json"), DEFAULT_TEAMS);
   const state = readJson(path.join(DATA_DIR, "state.json"), DEFAULT_STATE);
   const history = readJson(path.join(DATA_DIR, "history.json"), []);
@@ -154,6 +175,7 @@ function saveAll({ settings, teams, state, history }) {
 const app = express();
 app.use(express.json({ limit: "5mb" }));
 app.use("/img", express.static(path.join(ROOT_DIR, "img")));
+app.use("/video", express.static(path.join(ROOT_DIR, "video")));
 app.use(express.static(path.join(ROOT_DIR, "public")));
 app.use("/in-game-assets", express.static(IN_GAME_ASSETS_DIR));
 
@@ -294,7 +316,7 @@ app.post("/api/settings", (req, res) => {
     return res.status(400).json({ ok: false, message: "settings 데이터가 필요합니다." });
   }
   const data = loadAll();
-  data.settings = settings;
+  data.settings = normalizeSettings(settings);
   applySidePickMeta(data);
   applyBanPriorityMeta(data);
   applyLayoutSwapMeta(data);
@@ -318,7 +340,7 @@ app.post("/api/state", (req, res) => {
 
 app.post("/api/reset", (req, res) => {
   const data = {
-    settings: DEFAULT_SETTINGS,
+    settings: normalizeSettings(DEFAULT_SETTINGS),
     teams: DEFAULT_TEAMS,
     state: DEFAULT_STATE,
     history: []
@@ -358,7 +380,7 @@ wss.on("connection", (ws) => {
       if (data.type === "admin:publish") {
         const payload = data.payload || {};
         const store = loadAll();
-        const settings = payload.settings || store.settings;
+        const settings = normalizeSettings(payload.settings || store.settings);
         const teams = payload.teams || store.teams;
         const state = payload.state || store.state;
         const history = payload.history || store.history;

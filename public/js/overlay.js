@@ -31,6 +31,9 @@ function render(payload) {
   assets = payload.assets || assets;
 
   document.getElementById("match-name").textContent = settings.matchName;
+  const matchLogo = document.getElementById("match-logo");
+  matchLogo.src = settings.matchLogo || "";
+  matchLogo.style.display = settings.matchLogo ? "block" : "none";
   document.getElementById("team1-name").textContent = teams.team1.name;
   document.getElementById("team2-name").textContent = teams.team2.name;
   document.getElementById("team1-score").textContent = score.team1 ?? 0;

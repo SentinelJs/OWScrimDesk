@@ -43,6 +43,14 @@ body {
   display: grid;
   gap: 8px;
   text-align: center;
+  justify-items: center;
+}
+
+#match-logo {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  display: none;
 }
 
 .match-name {

@@ -127,6 +127,18 @@ function updateLogoPreview(teamId) {
   }
 }
 
+function updateMatchLogoPreview() {
+  const preview = document.getElementById("match-logo-preview");
+  if (!preview) return;
+  preview.innerHTML = "";
+  const logo = state.settings?.matchLogo || "";
+  if (logo) {
+    const img = document.createElement("img");
+    img.src = logo;
+    preview.appendChild(img);
+  }
+}
+
 function updateColorLabel(teamId) {
   const color = document.getElementById(`${teamId}-color`).value;
   document.getElementById(`${teamId}-color-swatch`).style.background = color;
@@ -451,10 +463,12 @@ function renderHistory() {
 
 function renderMatchInfo() {
   document.getElementById("match-name").value = state.settings.matchName;
+  state.settings.matchLogo = state.settings.matchLogo || "";
   document.getElementById("match-series").value = state.settings.series;
   document.getElementById("first-pick").value = state.settings.firstPickTeamId;
   document.getElementById("toggle-hero").checked = state.settings.enableHeroBan;
   document.getElementById("toggle-map").checked = state.settings.enableMapPick;
+  updateMatchLogoPreview();
   renderMapPool();
   toggleAreas();
 }
@@ -660,6 +674,18 @@ function bindEvents() {
 
   document.getElementById("team2-logo-color").addEventListener("click", () => {
     applyDominantColor("team2");
+  });
+
+  document.getElementById("match-logo-file").addEventListener("change", async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    state.settings.matchLogo = await readImageAsDataUrl(file);
+    updateMatchLogoPreview();
+  });
+
+  document.getElementById("match-logo-clear").addEventListener("click", () => {
+    state.settings.matchLogo = "";
+    updateMatchLogoPreview();
   });
 
   document.getElementById("saveTeams").addEventListener("click", async () => {
@@ -949,7 +975,8 @@ function bindEvents() {
   });
 
   document.getElementById("saveMatch").addEventListener("click", async () => {
-    state.settings.matchName = document.getElementById("match-name").value || "OW2 Scrim";
+    state.settings.matchName = document.getElementById("match-name").value;
+    state.settings.matchLogo = state.settings.matchLogo || "";
     state.settings.series = document.getElementById("match-series").value;
     state.settings.firstPickTeamId = document.getElementById("first-pick").value;
     state.settings.enableHeroBan = document.getElementById("toggle-hero").checked;

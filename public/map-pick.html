@@ -5,16 +5,18 @@
   <title>OW2 Map Pick Overlay</title>
   <style>
     :root {
-      --bg: #0b0f17;
+      --bg: #1A1A1A;
       --panel: #111827;
-      --text: #f8fafc;
+      --text: #FAFAF8;
       --muted: rgba(255, 255, 255, 0.7);
       --label-bg: rgba(0, 0, 0, 0.55);
       --disabled-overlay: rgba(0, 0, 0, 0.55);
-      --header-height: 140px;
+      --header-height: 110px;
       --mode-header-height: 56px;
       --map-label-height: 42px;
       --border-width: 4px;
+      --score-bg: #c9ac55;
+      --ui-font-scale: 1.2;
     }
 
     * {
@@ -25,7 +27,7 @@
       margin: 0;
       width: 100vw;
       height: 100vh;
-      background: #000;
+      background: var(--bg);
       color: var(--text);
       font-family: "Koverwatch", "Teko", "Noto Sans KR", sans-serif;
       overflow: hidden;
@@ -47,71 +49,110 @@
     }
 
     .header {
-      height: clamp(110px, 12vh, var(--header-height));
-      display: grid;
-      grid-template-columns: 1fr 1.4fr 1fr;
+      height: var(--header-height);
+      display: flex;
       align-items: center;
-      padding: clamp(12px, 2.2vh, 24px) clamp(16px, 2.5vw, 40px);
-      background: linear-gradient(180deg, rgba(10, 10, 12, 0.9), rgba(10, 10, 12, 0.6));
-      border-bottom: 2px solid rgba(255, 255, 255, 0.08);
-      gap: clamp(8px, 1.2vw, 16px);
+      padding: 0;
+      background: var(--bg);
+      border-bottom: 3px solid #1A1A1A;
+      gap: 16px;
+      font-family: "Pretendard", "Noto Sans KR", system-ui, sans-serif;
     }
 
     .team-block {
       display: flex;
+      width: 100%;
+      margin: 16px;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
+      position: relative;
+    }
+
+    .team-block.left {
+      justify-content: flex-start;
     }
 
     .team-block.right {
       justify-content: flex-end;
     }
 
-    .team-block.right .team-inline {
-      flex-direction: row-reverse;
-    }
-
     .team-logo {
-      width: clamp(48px, 5vw, 70px);
-      height: clamp(48px, 5vw, 70px);
-      border-radius: 2px;
+      width: 84px;
+      height: 84px;
       background: transparent;
-      display: block;
+      display: grid;
       place-items: center;
       overflow: hidden;
-      padding: 12px;
-      box-sizing: border-box;
     }
 
     .team-logo img {
-      width: 100%;
-      height: 100%;
-      max-width: 100%;
-      max-height: 100%;
+      width: 70%;
+      height: 70%;
       object-position: center;
       object-fit: contain;
       display: block;
     }
 
     .team-name {
-      font-size: clamp(22px, 2vw, 36px);
-      letter-spacing: 1px;
+      min-width: 200px;
+      height: 84px;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Pretendard", "Noto Sans KR", system-ui, sans-serif;
+      font-size: calc(28px * var(--ui-font-scale));
+      font-weight: 700;
+      line-height: 1;
       text-transform: uppercase;
-      padding-bottom: 6px;
-      border-bottom: 4px solid transparent;
+      color: var(--text);
+      padding: 0 16px;
+      border: none;
+      text-align: center;
     }
 
     .pick-indicator {
-      font-size: clamp(16px, 1.4vw, 24px);
-      letter-spacing: 2px;
+      position: absolute;
+      top: 50%;
+      transform: translateY(22px);
+      font-size: 16px;
+      letter-spacing: 1px;
       color: var(--muted);
       white-space: nowrap;
+      pointer-events: none;
+    }
+
+    .team-block.left .pick-indicator {
+      left: 106px;
+    }
+
+    .team-block.right .pick-indicator {
+      right: 106px;
+      text-align: right;
     }
 
     .team-inline {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 0;
+    }
+
+    .team-block.left .team-inline {
+      justify-content: flex-start;
+    }
+
+    .team-block.left .team-name {
+      justify-content: flex-start;
+      text-align: left;
+    }
+
+    .team-block.right .team-inline {
+      justify-content: flex-end;
+    }
+
+    .team-block.right .team-name {
+      justify-content: flex-end;
+      text-align: right;
     }
 
     .center-block {
@@ -122,29 +163,74 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: clamp(8px, 1.2vw, 16px);
-      margin-bottom: clamp(4px, 0.8vh, 6px);
+      gap: 16px;
     }
 
     .score-box {
-      width: clamp(48px, 4.2vw, 70px);
-      height: clamp(42px, 4.2vh, 52px);
-      background: #dcb043;
-      color: #0b0f17;
+      width: var(--header-height);
+      height: var(--header-height);
+      background: var(--score-bg);
+      color: var(--text);
       display: grid;
       place-items: center;
-      font-size: clamp(22px, 2.4vw, 32px);
-      font-weight: 700;
-      border-radius: 4px;
+      font-size: calc(48px * var(--ui-font-scale));
+      font-weight: 800;
     }
 
     .match-name {
-      font-size: clamp(18px, 1.7vw, 28px);
+      width: 320px;
+      height: 84px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
       color: var(--text);
-      padding: 8px 16px;
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 4px;
-      min-width: 260px;
+      padding: 0 12px;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .match-meta {
+      width: 320px;
+      height: var(--header-height);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .match-meta-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      max-width: 100%;
+      max-height: 100%;
+      width: 100%;
+    }
+
+    .match-meta-content.with-logo {
+      width: fit-content;
+      max-width: 100%;
+    }
+
+    .match-meta-content.with-logo .match-name {
+      height: auto;
+    }
+
+    .match-meta-content.has-linebreak .match-name {
+      white-space: pre-line;
+    }
+
+    .match-logo {
+      width: 60px;
+      height: 60px;
+      object-fit: contain;
+      display: none;
+      flex-shrink: 0;
     }
 
     .picking-text {
@@ -155,7 +241,7 @@
       flex: 1;
       display: flex;
       gap: 0;
-      padding: clamp(12px, 2vh, 20px) clamp(12px, 2vw, 32px) clamp(16px, 2.4vh, 28px);
+      /* padding: clamp(12px, 2vh, 20px) clamp(12px, 2vw, 32px) clamp(16px, 2.4vh, 28px); */
     }
 
     .mode-column {
@@ -282,7 +368,6 @@
       height: clamp(40px, 4vw, 70px);
       object-fit: contain;
       border-radius: 4px;
-      background: rgba(0, 0, 0, 0.55);
       padding: 6px;
     }
 
@@ -380,7 +465,7 @@
 <body>
   <div class="overlay">
     <header class="header">
-      <div class="team-block" id="team1-block">
+      <div class="team-block left" id="team1-block">
         <div class="team-logo" id="team1-logo"></div>
         <div class="team-inline">
           <div class="team-name" id="team1-name"></div>
@@ -390,7 +475,12 @@
       <div class="center-block">
         <div class="score-row">
           <div class="score-box" id="score-team1">0</div>
-          <div class="match-name" id="match-name">-</div>
+          <div class="match-meta" id="match-meta">
+            <div class="match-meta-content" id="match-meta-content">
+              <img class="match-logo" id="match-logo" alt="match-logo" />
+              <div class="match-name" id="match-name">-</div>
+            </div>
+          </div>
           <div class="score-box" id="score-team2">0</div>
         </div>
         <div class="picking-text" id="picking-text">-</div>
@@ -443,6 +533,34 @@
     ws.addEventListener("close", () => {
       setTimeout(() => location.reload(), 1500);
     });
+
+    function fitMatchNameText() {
+      const matchNameEl = document.getElementById("match-name");
+      const matchMetaContent = document.getElementById("match-meta-content");
+      if (!matchNameEl) return;
+
+      const hasLogo = !!matchMetaContent && matchMetaContent.classList.contains("with-logo");
+      const maxFont = 28;
+      const minFont = 14;
+      const gap = 6;
+      const logoHeight = hasLogo ? 60 : 0;
+      const containerHeight = (matchMetaContent && matchMetaContent.clientHeight) || 84;
+      const availableHeight = hasLogo
+        ? Math.max(minFont + 4, containerHeight - logoHeight - gap)
+        : 84;
+
+      // matchNameEl.style.height = `${availableHeight}px`;
+      matchNameEl.style.fontSize = `${maxFont}px`;
+
+      let currentFont = maxFont;
+      while (
+        currentFont > minFont
+        && (matchNameEl.scrollWidth > matchNameEl.clientWidth || matchNameEl.scrollHeight > matchNameEl.clientHeight)
+      ) {
+        currentFont -= 1;
+        matchNameEl.style.fontSize = `${currentFont}px`;
+      }
+    }
 
     function render(payload) {
       if (!payload) return;
@@ -635,15 +753,29 @@
 
       team1Name.textContent = teams.team1.name;
       team2Name.textContent = teams.team2.name;
-      team1Name.style.borderBottomColor = teams.team1.color;
-      team2Name.style.borderBottomColor = teams.team2.color;
 
       updateLogo(team1Logo, teams.team1.logo);
       updateLogo(team2Logo, teams.team2.logo);
 
       document.getElementById("score-team1").textContent = score.team1 ?? 0;
       document.getElementById("score-team2").textContent = score.team2 ?? 0;
-      document.getElementById("match-name").textContent = settings.matchName || "-";
+      const rawMatchName = settings.matchName || "-";
+      document.getElementById("match-name").textContent = rawMatchName;
+      const matchLogo = document.getElementById("match-logo");
+      const matchMetaContent = document.getElementById("match-meta-content");
+      const hasLineBreak = /\r?\n/.test(rawMatchName);
+      matchMetaContent.classList.toggle("has-linebreak", hasLineBreak);
+      const matchLogoSrc = settings.matchLogo || "";
+      if (matchLogoSrc) {
+        matchLogo.src = matchLogoSrc;
+        matchLogo.style.display = "block";
+        matchMetaContent.classList.add("with-logo");
+      } else {
+        matchLogo.src = "";
+        matchLogo.style.display = "none";
+        matchMetaContent.classList.remove("with-logo");
+      }
+      fitMatchNameText();
 
       const pickingTeam = getPickingTeam(settings, history, state.currentMatchIndex || 1);
       document.getElementById("picking-text").textContent = "";
@@ -651,11 +783,11 @@
       const pickLeft = document.getElementById("pick-left");
       const pickRight = document.getElementById("pick-right");
       if (pickingTeam === "team1") {
-        pickLeft.textContent = "<<< MAP PICK";
+        pickLeft.textContent = "MAP PICK";
         pickRight.textContent = "";
       } else if (pickingTeam === "team2") {
         pickLeft.textContent = "";
-        pickRight.textContent = "MAP PICK >>>";
+        pickRight.textContent = "MAP PICK";
       } else {
         pickLeft.textContent = "";
         pickRight.textContent = "";
@@ -722,6 +854,8 @@
       const b = num & 255;
       return `rgba(${r}, ${g}, ${b}, ${alpha})`;
     }
+
+    window.addEventListener("resize", fitMatchNameText);
 
   </script>
 </body>

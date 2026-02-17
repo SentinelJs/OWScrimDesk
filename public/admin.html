@@ -162,7 +162,12 @@
       <button class="secondary" id="refreshMatch">최신 정보 불러오기</button>
       <div class="grid two">
         <div class="card">
-          <label>경기 이름<input id="match-name" type="text" autocomplete="off" /></label>
+          <label>경기 이름<textarea id="match-name" rows="2" autocomplete="off"></textarea></label>
+          <label>경기 로고 업로드<input id="match-logo-file" type="file" accept="image/*" /></label>
+          <div class="logo-actions">
+            <button class="secondary" id="match-logo-clear">로고 제거</button>
+          </div>
+          <div class="logo-preview" id="match-logo-preview"></div>
           <label>경기 세트 수
             <select id="match-series">
               <option value="Bo3">Bo3</option>

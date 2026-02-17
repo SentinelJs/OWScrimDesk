@@ -137,7 +137,7 @@ label {
   font-size: 13px;
 }
 
-input, select {
+input, select, textarea {
   background: #0b1220;
   border: 1px solid var(--border);
   padding: 9px 12px;
@@ -146,7 +146,12 @@ input, select {
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-input:focus, select:focus, button:focus {
+textarea {
+  resize: vertical;
+  min-height: 72px;
+}
+
+input:focus, select:focus, textarea:focus, button:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(92, 198, 255, 0.2);

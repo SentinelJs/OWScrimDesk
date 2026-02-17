@@ -215,6 +215,21 @@
             white-space: pre; /* 연속된 공백 유지 */
         }
 
+        .match-title-wrap {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 0;
+        }
+
+        #match-logo-small {
+            width: 16px;
+            height: 16px;
+            object-fit: contain;
+            display: none;
+            flex-shrink: 0;
+        }
+
         /* 유틸리티: 숨김 */
         .hidden { display: none !important; }
 
@@ -224,7 +239,10 @@
 
     <!-- 중앙 상단 공지 박스 -->
     <div class="center-notice-box">
-        <span id="match-title">KHU Espers</span>
+        <span class="match-title-wrap">
+            <img id="match-logo-small" src="" alt="MatchLogo">
+            <span id="match-title">KHU Espers</span>
+        </span>
         <span id="set-score">SET 1 ㅣ 눔바니</span>
     </div>
 
@@ -309,7 +327,17 @@
             };
             const safeState = state || {};
             const mapName = safeState.currentMapName || "-";
-            document.getElementById('match-title').textContent = settings?.matchName || "";
+            const rawMatchName = settings?.matchName || "";
+            document.getElementById('match-title').textContent = rawMatchName.replace(/\r?\n/g, "");
+            const matchLogoEl = document.getElementById('match-logo-small');
+            const matchLogo = settings?.matchLogo || "";
+            if (matchLogo) {
+                matchLogoEl.src = matchLogo;
+                matchLogoEl.style.display = 'block';
+            } else {
+                matchLogoEl.src = "";
+                matchLogoEl.style.display = 'none';
+            }
             document.getElementById('set-score').textContent = `SET ${safeState.currentMatchIndex || 1} ㅣ ${mapName}`;
 
             const heroById = (id) => assets?.heroes?.find((hero) => hero.id === id);

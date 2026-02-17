@@ -4,352 +4,551 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Hero Ban Overlay</title>
-  <style>
-    :root {
-      --bg: #0b0d10;
-      --text: #f5f7fb;
-      --muted: rgba(245, 247, 251, 0.65);
-      --accent-left: #e6335a;
-      --accent-right: #02f7f8;
-      --paper: rgba(245, 244, 238, 0.92);
-      --paper-dark: rgba(225, 224, 214, 0.96);
-    }
-    * { box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; margin: 0; padding: 0; }
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: "Pretendard", "Noto Sans KR", system-ui, sans-serif;
-      overflow: hidden;
-    }
-    .overlay {
-      position: relative;
-      width: 100vw;
-      height: 100vh;
-      margin: 0 auto;
-      background: var(--bg);
-      display: grid;
-      grid-template-rows: clamp(90px, 12vh, 140px) 1fr clamp(120px, 18vh, 200px);
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-    }
-    .overlay::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(0, 0, 0, 0.08) 45%, rgba(0, 0, 0, 0.25) 100%);
-      z-index: 0;
-    }
-    .top, .bottom, .main { position: relative; z-index: 1; }
+  <!doctype html>
+  <html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hero Ban Overlay</title>
+    <style>
+      :root {
+        --bg: #1A1A1A;
+        --text: #FAFAF8;
+        --muted: rgba(255, 255, 255, 0.7);
+        --accent-left: #e6335a;
+        --accent-right: #02f7f8;
+        --score-bg: #c9ac55;
+        --panel-bg: transparent;
+        --map-image: none;
+        --ui-font-scale: 1.2;
+        --topbar-height: 110px;
+      }
 
-    .top {
-      background: #0a0a0c;
-      border-bottom: 3px solid rgba(0, 0, 0, 0.18);
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
-      align-items: center;
-      gap: 18px;
-      padding: 16px 48px;
-    }
-    .label {
-      font-size: 28px;
-      font-weight: 800;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: #f5f7fb;
-    }
-    .label.left { text-align: left; }
-    .label.right { text-align: right; }
+      * { box-sizing: border-box; }
+      html, body { width: 100%; height: 100%; margin: 0; padding: 0; }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Pretendard", "Noto Sans KR", system-ui, sans-serif;
+        overflow: hidden;
+      }
 
-    .title {
-      text-align: center;
-      font-size: 36px;
-      font-weight: 900;
-      letter-spacing: 0.14em;
-      color: #f5f7fb;
-    }
-    .subtitle {
-      margin-top: 8px;
-      font-size: 18px;
-      color: rgba(245, 247, 251, 0.7);
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-    }
+      .hero-ban-overlay {
+        width: 100vw;
+        height: 100vh;
+        display: grid;
+        grid-template-rows: var(--topbar-height) 1fr 75px 90px;
+        background: var(--bg);
+        position: relative;
+      }
 
-    .main {
-      display: grid;
-      grid-template-columns: 1fr 8px 1fr;
-      gap: 0;
-      align-items: stretch;
-      position: relative;
-    }
-    .hero-side {
-      position: relative;
-      overflow: hidden;
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
-    }
-    .hero-side.left { justify-content: flex-start; }
-    .hero-side.right { justify-content: flex-end; }
-    .hero-render {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
-      padding: 0 80px 40px;
-      z-index: 2;
-      pointer-events: none;
-    }
-    .hero-render img {
-      max-height: 100%;
-      max-width: 95%;
-      height: 100%;
-      object-fit: contain;
-      object-position: bottom center;
-      filter: drop-shadow(0 24px 48px rgba(0, 0, 0, 0.35));
-    }
-    .hero-meta {
-      position: absolute;
-      bottom: 28px;
-      left: 48px;
-      right: 48px;
-      z-index: 3;
-      display: flex;
-      justify-content: center;
-      pointer-events: none;
-    }
-    .hero-name {
-      font-size: 18px;
-      font-weight: 700;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: rgba(255, 255, 255, 0.85);
-      text-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
-    }
-    .hero-placeholder {
-      font-size: 32px;
-      font-weight: 800;
-      color: rgba(255, 255, 255, 0.8);
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      text-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
-    }
+      .disabled {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 48px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 5;
+      }
 
-    .divider {
-      width: 8px;
-      background: rgba(0, 0, 0, 0.7);
-      align-self: stretch;
-    }
+      .topbar {
+        display: flex;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        gap: 16px;
+        background: #1A1A1A;
+        border-bottom: 3px solid #1a1a1a;
+      }
 
-    .bottom {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      align-items: center;
-      gap: 0;
-      background: #0a0a0c;
-      border-top: 3px solid rgba(0, 0, 0, 0.3);
-      position: relative;
-    }
-    .bottom::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      left: 50%;
-      width: 4px;
-      background: rgba(0, 0, 0, 0.7);
-      transform: translateX(-50%);
-    }
-    .team {
-      display: flex;
-      align-items: center;
-      gap: 18px;
-      padding: 24px 40px;
-      min-height: 120px;
-      background: transparent;
-    }
-    .team.right { justify-self: end; }
-    .team.left { justify-self: start; }
-    .team img {
-      width: 68px;
-      height: 68px;
-      object-fit: contain;
-    }
-    .team-name {
-      font-size: 42px;
-      font-weight: 900;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-    }
-    .team.left { border-left: 8px solid var(--accent-left); }
-    .team.right { border-right: 8px solid var(--accent-right); }
+      .team-block {
+        display: flex;
+        margin: 16px;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+      }
 
-    .hidden { display: none !important; }
+      .team-block.left {
+        justify-content: flex-start;
+      }
 
-    .disabled {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 48px;
-      font-weight: 800;
-      letter-spacing: 0.12em;
-      background: rgba(0, 0, 0, 0.65);
-      z-index: 2;
-    }
-  </style>
-</head>
-<body>
-  <div class="stage">
-    <div class="overlay" id="overlay">
+      .team-block.right {
+        justify-content: flex-end;
+      }
+
+      .team-block.right .team-name {
+        order: 1;
+        justify-content: flex-end;
+        text-align: right;
+      }
+
+      .team-block.right .team-logo {
+        order: 2;
+      }
+
+      .team-logo {
+        width: 84px;
+        height: 84px;
+        background: transparent;
+        display: grid;
+        place-items: center;
+        border: none;
+      }
+
+      .team-logo img {
+        width: 70%;
+        height: 70%;
+        object-fit: contain;
+      }
+
+      .team-name {
+        min-width: 200px;
+        height: 84px;
+        background: transparent;
+        color: #FAFAF8;
+        display: flex;
+        align-items: center;
+        font-size: calc(28px * var(--ui-font-scale));
+        font-weight: 700;
+        text-transform: uppercase;
+        border: none;
+        padding: 0 16px;
+        text-align: center;
+      }
+
+      .score-block {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        color: #FAFAF8;
+      }
+
+      .score-box {
+        width: var(--topbar-height);
+        height: var(--topbar-height);
+        background: var(--score-bg);
+        display: grid;
+        place-items: center;
+        font-size: calc(48px * var(--ui-font-scale));
+        font-weight: 800;
+        color: #FAFAF8;
+      }
+
+      .match-name {
+        width: 320px;
+        height: 84px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: #FAFAF8;
+        padding: 0 12px;
+        white-space: nowrap;
+        overflow: hidden;
+      }
+
+      .match-meta {
+        width: 320px;
+        height: var(--topbar-height);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+      }
+
+      .match-meta-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        max-width: 100%;
+        max-height: 100%;
+        width: 100%;
+      }
+
+      .match-meta-content.with-logo {
+        width: fit-content;
+        max-width: 100%;
+      }
+
+      .match-meta-content.with-logo .match-name {
+        height: auto;
+      }
+
+      .match-meta-content.has-linebreak .match-name {
+        white-space: pre-line;
+      }
+
+      .match-logo {
+        width: 60px;
+        height: 60px;
+        object-fit: contain;
+        display: none;
+        flex-shrink: 0;
+      }
+
+      .main-area {
+        position: relative;
+        display: grid;
+        grid-template-columns: 1fr 6px 1fr;
+        align-items: stretch;
+        background-image: var(--map-image);
+        background-size: cover;
+        background-position: center;
+        overflow: hidden;
+      }
+
+      .main-area::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        background: rgba(0, 0, 0, 0.12);
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+        pointer-events: none;
+      }
+
+      .hero-panel {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        z-index: 1;
+      }
+
+      .hero-panel video {
+        width: 100%;
+        height: 125%;
+        object-fit: cover;
+        object-position: center;
+        filter: drop-shadow(0 16px 32px rgba(0, 0, 0, 0.35));
+      }
+
+      .hero-placeholder {
+        position: absolute;
+        font-size: calc(22px * var(--ui-font-scale));
+        font-weight: 700;
+        color: rgba(0, 0, 0, 0.7);
+        text-align: center;
+        z-index: 2;
+        background: rgba(255, 255, 255, 0.6);
+        padding: 12px 20px;
+        border-radius: 4px;
+      }
+
+      .divider {
+        background: #111111;
+        z-index: 2;
+      }
+
+      .mode-logo {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%) rotate(45deg);
+        width: 40px;
+        height: 40px;
+        background: #1A1A1A;
+        display: grid;
+        place-items: center;
+        z-index: 3;
+      }
+
+      .mode-logo img {
+        width: 80%;
+        height: 80%;
+        object-fit: contain;
+        transform: rotate(-45deg);
+      }
+
+      .info-bar {
+        display: grid;
+        grid-template-columns: 1fr 0.5fr 1fr;
+        background: transparent;
+        border-top: none;
+        border-bottom: none;
+        color: #FAFAF8;
+      }
+
+      .info-cell {
+        display: grid;
+        place-items: center;
+        font-size: calc(24px * var(--ui-font-scale));
+        font-weight: 700;
+        text-transform: uppercase;
+        border-right: none;
+      }
+
+      .info-cell:last-child {
+        border-right: none;
+      }
+
+      #map-name-bar {
+        background: #FAFAF8;
+        color: #1A1A1A;
+      }
+
+      .label-bar {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        background: rgba(255, 255, 255, 0.2);
+        color: #FAFAF8;
+        align-items: center;
+      }
+
+      .label-bar div {
+        font-size: 44px;
+        font-weight: 700;
+        text-align: center;
+        letter-spacing: 0.04em;
+      }
+
+      .label-bar div + div {
+        border-left: 3px solid #1A1A1A;
+      }
+
+      .hidden { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <div class="hero-ban-overlay" id="overlay">
       <div class="disabled hidden" id="disabled">HERO BAN DISABLED</div>
-      <div class="top">
-      <div class="label left" id="labelLeft">INITIAL BAN</div>
-      <div class="title">
-        HERO BAN
-        <div class="subtitle" id="mapName">MAP</div>
-      </div>
-      <div class="label right" id="labelRight">FOLLOW-UP BAN</div>
-    </div>
 
-      <div class="main">
-        <div class="hero-side left" id="panelLeft">
-          <div class="hero-render">
-            <img id="heroLeftImg" alt="" />
+      <div class="topbar">
+        <div class="team-block left">
+          <div class="team-logo"><img id="team1-logo" alt="" /></div>
+          <div class="team-name" id="team1-name">Team 1</div>
+        </div>
+
+        <div class="score-block">
+          <div class="score-box" id="score-team1">0</div>
+          <div class="match-meta" id="match-meta">
+            <div class="match-meta-content" id="match-meta-content">
+              <img class="match-logo" id="match-logo" alt="match-logo" />
+              <div class="match-name" id="match-name">Match Name</div>
+            </div>
           </div>
-          <div class="hero-meta">
-            <div class="hero-name" id="heroLeftName"></div>
-            <div class="hero-placeholder" id="heroLeftPlaceholder">BANNING...</div>
-          </div>
+          <div class="score-box" id="score-team2">0</div>
+        </div>
+
+        <div class="team-block right">
+          <div class="team-logo"><img id="team2-logo" alt="" /></div>
+          <div class="team-name" id="team2-name">Team 2</div>
+        </div>
+      </div>
+
+      <div class="main-area" id="main-area">
+        <div class="hero-panel">
+          <video id="heroLeftVideo" autoplay loop muted playsinline></video>
+          <div class="hero-placeholder" id="heroLeftPlaceholder">TEAM1 BANNED HERO VIDEO</div>
         </div>
         <div class="divider"></div>
-        <div class="hero-side right" id="panelRight">
-          <div class="hero-render">
-            <img id="heroRightImg" alt="" />
-          </div>
-          <div class="hero-meta">
-            <div class="hero-name" id="heroRightName"></div>
-            <div class="hero-placeholder" id="heroRightPlaceholder">BANNING...</div>
-          </div>
+        <div class="hero-panel">
+          <video id="heroRightVideo" autoplay loop muted playsinline></video>
+          <div class="hero-placeholder" id="heroRightPlaceholder">TEAM2 BANNED HERO VIDEO</div>
         </div>
+        <div class="mode-logo"><img id="modeLogo" alt="" /></div>
       </div>
 
-      <div class="bottom">
-        <div class="team left" id="teamLeft">
-          <img id="teamLeftLogo" alt="" />
-          <div class="team-name" id="teamLeftName">Team 1</div>
-        </div>
-        <div class="team right" id="teamRight">
-          <div class="team-name" id="teamRightName">Team 2</div>
-          <img id="teamRightLogo" alt="" />
-        </div>
+      <div class="info-bar">
+        <div class="info-cell" id="ban-name-left">Team1 Banned Hero Name</div>
+        <div class="info-cell" id="map-name-bar">Map Name</div>
+        <div class="info-cell" id="ban-name-right">Team2 Banned Hero Name</div>
+      </div>
+
+      <div class="label-bar">
+        <div id="labelLeft">Initial Ban</div>
+        <div id="labelRight">Follow-up Ban</div>
       </div>
     </div>
 
-  <script>
-    const ws = new WebSocket(`ws://${location.host}`);
-    const overlay = document.getElementById("overlay");
-    const disabled = document.getElementById("disabled");
-    const labelLeft = document.getElementById("labelLeft");
-    const labelRight = document.getElementById("labelRight");
-    const mapName = document.getElementById("mapName");
+    <script>
+      const ws = new WebSocket(`ws://${location.host}`);
+      const overlay = document.getElementById("overlay");
+      const disabled = document.getElementById("disabled");
+      const mainArea = document.getElementById("main-area");
 
-    const heroLeftImg = document.getElementById("heroLeftImg");
-    const heroRightImg = document.getElementById("heroRightImg");
-    const heroLeftName = document.getElementById("heroLeftName");
-    const heroRightName = document.getElementById("heroRightName");
-    const heroLeftPlaceholder = document.getElementById("heroLeftPlaceholder");
-    const heroRightPlaceholder = document.getElementById("heroRightPlaceholder");
+      const team1Name = document.getElementById("team1-name");
+      const team2Name = document.getElementById("team2-name");
+      const team1Logo = document.getElementById("team1-logo");
+      const team2Logo = document.getElementById("team2-logo");
 
-    const teamLeft = document.getElementById("teamLeft");
-    const teamRight = document.getElementById("teamRight");
-    const teamLeftLogo = document.getElementById("teamLeftLogo");
-    const teamRightLogo = document.getElementById("teamRightLogo");
-    const teamLeftName = document.getElementById("teamLeftName");
-    const teamRightName = document.getElementById("teamRightName");
+      const scoreTeam1 = document.getElementById("score-team1");
+      const scoreTeam2 = document.getElementById("score-team2");
+      const matchName = document.getElementById("match-name");
+      const matchLogo = document.getElementById("match-logo");
+      const matchMetaContent = document.getElementById("match-meta-content");
 
-    function setImage(el, src, fallbackTextEl) {
-      if (!src) {
-        el.classList.add("hidden");
-        if (fallbackTextEl) fallbackTextEl.classList.remove("hidden");
-        return;
-      }
-      el.src = src;
-      el.classList.remove("hidden");
-      if (fallbackTextEl) fallbackTextEl.classList.add("hidden");
-      el.onerror = () => {
-        el.classList.add("hidden");
-        if (fallbackTextEl) fallbackTextEl.classList.remove("hidden");
-      };
-    }
+      const labelLeft = document.getElementById("labelLeft");
+      const labelRight = document.getElementById("labelRight");
 
-    function render(state) {
-      if (!state) return;
-      const settings = state.settings || {};
-      disabled.classList.toggle("hidden", settings.enableHeroBan !== false);
+      const banNameLeft = document.getElementById("ban-name-left");
+      const banNameRight = document.getElementById("ban-name-right");
+      const mapNameBar = document.getElementById("map-name-bar");
 
-      const teams = state.teams || {};
-      const team1 = teams.team1 || { name: "Team 1", color: "#e6335a", logo: "" };
-      const team2 = teams.team2 || { name: "Team 2", color: "#02f7f8", logo: "" };
+      const heroLeftVideo = document.getElementById("heroLeftVideo");
+      const heroRightVideo = document.getElementById("heroRightVideo");
+      const heroLeftPlaceholder = document.getElementById("heroLeftPlaceholder");
+      const heroRightPlaceholder = document.getElementById("heroRightPlaceholder");
+      const modeLogo = document.getElementById("modeLogo");
 
-      document.documentElement.style.setProperty("--accent-left", team1.color || "#e6335a");
-      document.documentElement.style.setProperty("--accent-right", team2.color || "#02f7f8");
-
-      teamLeftName.textContent = team1.name || "Team 1";
-      teamRightName.textContent = team2.name || "Team 2";
-      setImage(teamLeftLogo, team1.logo || "", null);
-      setImage(teamRightLogo, team2.logo || "", null);
-
-      const game = state.state || {};
-      const assets = state.assets || { heroes: [], maps: [] };
-      const heroMap = new Map((assets.heroes || []).map((hero) => [hero.id, hero]));
-      const mapMap = new Map((assets.maps || []).map((map) => [map.id, map]));
-
-      const mapData = mapMap.get(game.currentMapId) || null;
-      const mapLabel = game.currentMapName || (mapData ? mapData.name : "");
-      mapName.textContent = mapLabel || "MAP";
-      overlay.style.backgroundImage = mapData && mapData.image
-        ? `url('${encodeURI(mapData.image)}')`
-        : "none";
-
-      const banOrder = game.banOrder || "A_FIRST";
-      if (banOrder === "B_FIRST") {
-        labelLeft.textContent = "FOLLOW-UP BAN";
-        labelRight.textContent = "INITIAL BAN";
-      } else {
-        labelLeft.textContent = "INITIAL BAN";
-        labelRight.textContent = "FOLLOW-UP BAN";
+      function setImage(el, src) {
+        if (!src) {
+          el.classList.add("hidden");
+          el.removeAttribute("src");
+          return;
+        }
+        const encoded = encodeURI(src);
+        el.setAttribute("src", encoded);
+        el.classList.remove("hidden");
       }
 
-      const banA = game.bans?.team1 || "";
-      const banB = game.bans?.team2 || "";
-      const heroA = banA ? heroMap.get(banA) : null;
-      const heroB = banB ? heroMap.get(banB) : null;
-
-      heroLeftName.textContent = heroA ? heroA.name : "";
-      heroRightName.textContent = heroB ? heroB.name : "";
-
-      setImage(heroLeftImg, heroA ? heroA.image : "", heroLeftPlaceholder);
-      setImage(heroRightImg, heroB ? heroB.image : "", heroRightPlaceholder);
-
-      if (!heroA) heroLeftName.textContent = "";
-      if (!heroB) heroRightName.textContent = "";
-    }
-
-    ws.addEventListener("open", () => {
-      ws.send(JSON.stringify({ type: "overlay:hello" }));
-    });
-
-    ws.addEventListener("message", (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === "overlay:update") {
-        render(data.payload);
+      function setVideo(el, src, fallbackTextEl) {
+        if (!src) {
+          el.classList.add("hidden");
+          el.removeAttribute("src");
+          if (fallbackTextEl) fallbackTextEl.classList.remove("hidden");
+          return;
+        }
+        const encoded = encodeURI(src);
+        if (el.getAttribute("src") !== encoded) {
+          el.setAttribute("src", encoded);
+          el.load();
+        }
+        el.classList.remove("hidden");
+        if (fallbackTextEl) fallbackTextEl.classList.add("hidden");
+        const playPromise = el.play();
+        if (playPromise && typeof playPromise.catch === "function") {
+          playPromise.catch(() => {});
+        }
+        el.onerror = () => {
+          el.classList.add("hidden");
+          if (fallbackTextEl) fallbackTextEl.classList.remove("hidden");
+        };
       }
-    });
-  </script>
-</body>
+
+      function fitMatchNameText() {
+        const hasLogo = matchMetaContent.classList.contains("with-logo");
+        const maxFont = 28;
+        const minFont = 14;
+        const gap = 6;
+        const logoHeight = hasLogo ? 60 : 0;
+        const containerHeight = matchMetaContent.clientHeight || 84;
+        const availableHeight = hasLogo
+          ? Math.max(minFont + 4, containerHeight - logoHeight - gap)
+          : 84;
+
+        // matchName.style.height = `${availableHeight}px`;
+        matchName.style.fontSize = `${maxFont}px`;
+
+        let currentFont = maxFont;
+        while (
+          currentFont > minFont
+          && (matchName.scrollWidth > matchName.clientWidth || matchName.scrollHeight > matchName.clientHeight)
+        ) {
+          currentFont -= 1;
+          matchName.style.fontSize = `${currentFont}px`;
+        }
+      }
+
+      function render(state) {
+        if (!state) return;
+        const settings = state.settings || {};
+        disabled.classList.toggle("hidden", settings.enableHeroBan !== false);
+
+        const teams = state.teams || {};
+        const team1 = teams.team1 || { name: "Team 1", color: "#e6335a", logo: "" };
+        const team2 = teams.team2 || { name: "Team 2", color: "#02f7f8", logo: "" };
+
+        team1Name.textContent = team1.name || "Team 1";
+        team2Name.textContent = team2.name || "Team 2";
+        setImage(team1Logo, team1.logo || "");
+        setImage(team2Logo, team2.logo || "");
+
+        const score = state.score || { team1: 0, team2: 0 };
+        scoreTeam1.textContent = score.team1 ?? 0;
+        scoreTeam2.textContent = score.team2 ?? 0;
+        const rawMatchName = settings.matchName || "Match Name";
+        matchName.textContent = rawMatchName;
+        const hasLineBreak = /\r?\n/.test(rawMatchName);
+        matchMetaContent.classList.toggle("has-linebreak", hasLineBreak);
+        const matchLogoSrc = settings.matchLogo || "";
+        if (matchLogoSrc) {
+          matchLogo.src = encodeURI(matchLogoSrc);
+          matchLogo.style.display = "block";
+          matchMetaContent.classList.add("with-logo");
+        } else {
+          matchLogo.removeAttribute("src");
+          matchLogo.style.display = "none";
+          matchMetaContent.classList.remove("with-logo");
+        }
+        fitMatchNameText();
+
+        const game = state.state || {};
+        const assets = state.assets || { heroes: [], maps: [] };
+        const heroMap = new Map((assets.heroes || []).map((hero) => [hero.id, hero]));
+        const mapMap = new Map((assets.maps || []).map((map) => [map.id, map]));
+
+        const mapData = mapMap.get(game.currentMapId) || null;
+        const mapLabel = game.currentMapName || (mapData ? mapData.name : "");
+        mapNameBar.textContent = mapLabel || "MAP";
+        mainArea.style.setProperty("--map-image", mapData && mapData.image
+          ? `url('${encodeURI(mapData.image)}')`
+          : "none");
+
+        const mapMode = mapData ? mapData.mode : game.currentMapMode;
+        const modeLogoSrc = mapMode ? `/img/icon/${mapMode === "control" ? "쟁탈" : mapMode === "hybrid" ? "하이브리드" : mapMode === "flashpoint" ? "플래시포인트" : mapMode === "push" ? "밀기" : mapMode === "escort" ? "호위" : mapMode}.png` : "";
+        setImage(modeLogo, modeLogoSrc);
+
+        const banOrder = game.banOrder || "A_FIRST";
+        if (banOrder === "B_FIRST") {
+          labelLeft.textContent = "Follow-up Ban";
+          labelRight.textContent = "Initial Ban";
+        } else {
+          labelLeft.textContent = "Initial Ban";
+          labelRight.textContent = "Follow-up Ban";
+        }
+
+        const banA = game.bans?.team1 || "";
+        const banB = game.bans?.team2 || "";
+        const heroA = banA ? heroMap.get(banA) : null;
+        const heroB = banB ? heroMap.get(banB) : null;
+
+        banNameLeft.textContent = heroA ? heroA.name : "TBD";
+        banNameRight.textContent = heroB ? heroB.name : "TBD";
+
+        const heroAVideo = heroA && heroA.image
+          ? heroA.image.replace("/img/hero/", "/video/hero/").replace(/\.png$/i, ".webm")
+          : "";
+        const heroBVideo = heroB && heroB.image
+          ? heroB.image.replace("/img/hero/", "/video/hero/").replace(/\.png$/i, ".webm")
+          : "";
+
+        setVideo(heroLeftVideo, heroAVideo, heroLeftPlaceholder);
+        setVideo(heroRightVideo, heroBVideo, heroRightPlaceholder);
+      }
+
+      ws.addEventListener("open", () => {
+        ws.send(JSON.stringify({ type: "overlay:hello" }));
+      });
+
+      ws.addEventListener("message", (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === "overlay:update") {
+          render(data.payload);
+        }
+      });
+
+      window.addEventListener("resize", fitMatchNameText);
+    </script>
+  </body>
 </html>
