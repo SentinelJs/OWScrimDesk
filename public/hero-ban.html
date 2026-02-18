@@ -4,12 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Hero Ban Overlay</title>
-  <!doctype html>
-  <html lang="ko">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Hero Ban Overlay</title>
+  <link rel="stylesheet" href="/css/shared-topbar.css" />
     <style>
       :root {
         --bg: #1A1A1A;
@@ -21,7 +16,7 @@
         --panel-bg: transparent;
         --map-image: none;
         --ui-font-scale: 1.2;
-        --topbar-height: 110px;
+        --header-height: 110px;
         --center-divider-width: 5px;
         --center-divider-color: #111111;
       }
@@ -39,7 +34,7 @@
         width: 100vw;
         height: 100vh;
         display: grid;
-        grid-template-rows: var(--topbar-height) 90px 1fr 75px;
+        grid-template-rows: var(--header-height) 90px 1fr 75px;
         background: var(--bg);
         position: relative;
       }
@@ -74,142 +69,12 @@
         visibility: hidden;
       }
 
-      .topbar {
-        display: flex;
-        grid-template-columns: 1fr auto 1fr;
-        align-items: center;
-        gap: 16px;
-        background: #1A1A1A;
-      }
-
-      .team-block {
-        display: flex;
-        margin: 16px;
-        align-items: center;
-        gap: 10px;
-        width: 100%;
-      }
-
-      .team-block.left {
-        justify-content: flex-start;
-      }
-
-      .team-block.right {
-        justify-content: flex-end;
-      }
-
-      .team-block.right .team-name {
-        order: 1;
-        justify-content: flex-end;
-        text-align: right;
-      }
-
-      .team-block.right .team-logo {
-        order: 2;
-      }
-
-      .team-logo {
-        width: 84px;
-        height: 84px;
-        background: transparent;
-        display: grid;
-        place-items: center;
-        border: none;
-      }
-
-      .team-logo img {
-        width: 70%;
-        height: 70%;
-        object-fit: contain;
-      }
-
-      .team-name {
-        min-width: 200px;
-        height: 84px;
-        background: transparent;
-        color: #FAFAF8;
-        display: flex;
-        align-items: center;
-        font-size: calc(28px * var(--ui-font-scale));
-        font-weight: 700;
-        text-transform: uppercase;
-        border: none;
-        padding: 0 16px;
-        text-align: center;
-      }
-
-      .score-block {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        color: #FAFAF8;
-      }
-
-      .score-box {
-        width: var(--topbar-height);
-        height: var(--topbar-height);
-        background: var(--score-bg);
-        display: grid;
-        place-items: center;
-        font-size: calc(48px * var(--ui-font-scale));
-        font-weight: 800;
-        color: #FAFAF8;
-      }
-
-      .match-name {
-        width: 320px;
-        height: 84px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        font-size: 28px;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-        color: #FAFAF8;
-        padding: 0 12px;
-        white-space: nowrap;
-        overflow: hidden;
-      }
-
-      .match-meta {
-        width: 320px;
-        height: var(--topbar-height);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-      }
-
-      .match-meta-content {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        max-width: 100%;
-        max-height: 100%;
-        width: 100%;
-      }
-
-      .match-meta-content.with-logo {
-        width: fit-content;
-        max-width: 100%;
-      }
-
-      .match-meta-content.with-logo .match-name {
-        height: auto;
-      }
-
-      .match-meta-content.has-linebreak .match-name {
-        white-space: pre-line;
-      }
-
-      .match-logo {
-        width: 60px;
-        height: 60px;
-        object-fit: contain;
+      .pick-indicator {
         display: none;
-        flex-shrink: 0;
+      }
+
+      .picking-text {
+        display: none;
       }
 
       .main-area {
@@ -363,29 +228,7 @@
     <div class="hero-ban-overlay loading" id="overlay">
       <div class="disabled hidden" id="disabled">HERO BAN DISABLED</div>
       <div class="loading-screen" id="loadingScreen">LOADING...</div>
-
-      <div class="topbar">
-        <div class="team-block left">
-          <div class="team-logo"><img id="team1-logo" alt="" /></div>
-          <div class="team-name" id="team1-name">Team 1</div>
-        </div>
-
-        <div class="score-block">
-          <div class="score-box" id="score-team1">0</div>
-          <div class="match-meta" id="match-meta">
-            <div class="match-meta-content" id="match-meta-content">
-              <img class="match-logo" id="match-logo" alt="match-logo" />
-              <div class="match-name" id="match-name">Match Name</div>
-            </div>
-          </div>
-          <div class="score-box" id="score-team2">0</div>
-        </div>
-
-        <div class="team-block right">
-          <div class="team-logo"><img id="team2-logo" alt="" /></div>
-          <div class="team-name" id="team2-name">Team 2</div>
-        </div>
-      </div>
+      <div id="shared-topbar-slot"></div>
 
       <div class="label-bar">
         <div id="labelLeft">Initial Ban</div>
@@ -415,18 +258,19 @@
       const overlay = document.getElementById("overlay");
       const disabled = document.getElementById("disabled");
       const loadingScreen = document.getElementById("loadingScreen");
+      const sharedTopbarSlot = document.getElementById("shared-topbar-slot");
       const mainArea = document.getElementById("main-area");
 
-      const team1Name = document.getElementById("team1-name");
-      const team2Name = document.getElementById("team2-name");
-      const team1Logo = document.getElementById("team1-logo");
-      const team2Logo = document.getElementById("team2-logo");
+      let team1Name = null;
+      let team2Name = null;
+      let team1Logo = null;
+      let team2Logo = null;
 
-      const scoreTeam1 = document.getElementById("score-team1");
-      const scoreTeam2 = document.getElementById("score-team2");
-      const matchName = document.getElementById("match-name");
-      const matchLogo = document.getElementById("match-logo");
-      const matchMetaContent = document.getElementById("match-meta-content");
+      let scoreTeam1 = null;
+      let scoreTeam2 = null;
+      let matchName = null;
+      let matchLogo = null;
+      let matchMetaContent = null;
 
       const labelLeft = document.getElementById("labelLeft");
       const labelRight = document.getElementById("labelRight");
@@ -441,6 +285,28 @@
       const heroRightPlaceholder = document.getElementById("heroRightPlaceholder");
       const modeLogo = document.getElementById("modeLogo");
       const HERO_VIDEO_START_TIME = 0.5;
+
+      function cacheTopbarElements() {
+        team1Name = document.getElementById("team1-name");
+        team2Name = document.getElementById("team2-name");
+        team1Logo = document.getElementById("team1-logo");
+        team2Logo = document.getElementById("team2-logo");
+        scoreTeam1 = document.getElementById("score-team1");
+        scoreTeam2 = document.getElementById("score-team2");
+        matchName = document.getElementById("match-name");
+        matchLogo = document.getElementById("match-logo");
+        matchMetaContent = document.getElementById("match-meta-content");
+      }
+
+      async function loadSharedTopbar() {
+        if (!sharedTopbarSlot) return;
+        const res = await fetch("/partials/shared-topbar.html", { cache: "no-store" });
+        if (!res.ok) {
+          throw new Error("공통 상단바를 불러오지 못했습니다.");
+        }
+        sharedTopbarSlot.innerHTML = await res.text();
+        cacheTopbarElements();
+      }
 
       function setLoading(isLoading, text = "LOADING...") {
         overlay.classList.toggle("loading", isLoading);
@@ -472,6 +338,7 @@
       }
 
       function setImage(el, src) {
+        if (!el) return;
         if (!src) {
           el.classList.add("hidden");
           el.removeAttribute("src");
@@ -480,6 +347,20 @@
         const encoded = encodeURI(src);
         el.setAttribute("src", encoded);
         el.classList.remove("hidden");
+      }
+
+      function updateLogo(container, logoUrl) {
+        if (!container) return;
+        container.innerHTML = "";
+        if (!logoUrl) {
+          container.style.display = "none";
+          return;
+        }
+        container.style.display = "grid";
+        const img = document.createElement("img");
+        img.src = encodeURI(logoUrl);
+        img.alt = "";
+        container.appendChild(img);
       }
 
       function setVideo(el, src, fallbackTextEl) {
@@ -534,6 +415,7 @@
       }
 
       function fitMatchNameText() {
+        if (!matchName || !matchMetaContent) return;
         const hasLogo = matchMetaContent.classList.contains("with-logo");
         const maxFont = 28;
         const minFont = 14;
@@ -559,6 +441,9 @@
 
       function render(state) {
         if (!state) return;
+        if (!team1Name || !team2Name || !team1Logo || !team2Logo || !scoreTeam1 || !scoreTeam2 || !matchName || !matchLogo || !matchMetaContent) {
+          return;
+        }
         const settings = state.settings || {};
         disabled.classList.toggle("hidden", settings.enableHeroBan !== false);
 
@@ -568,8 +453,8 @@
 
         team1Name.textContent = team1.name || "Team 1";
         team2Name.textContent = team2.name || "Team 2";
-        setImage(team1Logo, team1.logo || "");
-        setImage(team2Logo, team2.logo || "");
+        updateLogo(team1Logo, team1.logo || "");
+        updateLogo(team2Logo, team2.logo || "");
 
         const score = state.score || { team1: 0, team2: 0 };
         scoreTeam1.textContent = score.team1 ?? 0;
@@ -641,6 +526,7 @@
       async function init() {
         setLoading(true, "LOADING...");
         try {
+          await loadSharedTopbar();
           const snapshot = await loadInitialSnapshot();
           render(snapshot);
           setLoading(false);

@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>OW2 Map Pick Overlay</title>
+  <link rel="stylesheet" href="/css/shared-topbar.css" />
   <style>
     :root {
       --bg: #1A1A1A;
@@ -65,194 +66,6 @@
 
     .overlay.loading > *:not(.loading-screen) {
       visibility: hidden;
-    }
-
-    .header {
-      height: var(--header-height);
-      display: flex;
-      align-items: center;
-      padding: 0;
-      background: var(--bg);
-      gap: 16px;
-      font-family: "Pretendard", "Noto Sans KR", system-ui, sans-serif;
-    }
-
-    .team-block {
-      display: flex;
-      width: 100%;
-      margin: 16px;
-      align-items: center;
-      gap: 10px;
-      position: relative;
-    }
-
-    .team-block.left {
-      justify-content: flex-start;
-    }
-
-    .team-block.right {
-      justify-content: flex-end;
-    }
-
-    .team-logo {
-      width: 84px;
-      height: 84px;
-      background: transparent;
-      display: grid;
-      place-items: center;
-      overflow: hidden;
-    }
-
-    .team-logo img {
-      width: 70%;
-      height: 70%;
-      object-position: center;
-      object-fit: contain;
-      display: block;
-    }
-
-    .team-name {
-      min-width: 200px;
-      height: 84px;
-      background: transparent;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: "Pretendard", "Noto Sans KR", system-ui, sans-serif;
-      font-size: calc(28px * var(--ui-font-scale));
-      font-weight: 700;
-      line-height: 1;
-      text-transform: uppercase;
-      color: var(--text);
-      padding: 0 16px;
-      border: none;
-      text-align: center;
-    }
-
-    .pick-indicator {
-      position: absolute;
-      top: 50%;
-      transform: translateY(22px);
-      font-size: 16px;
-      letter-spacing: 1px;
-      color: var(--muted);
-      white-space: nowrap;
-      pointer-events: none;
-    }
-
-    .team-block.left .pick-indicator {
-      left: 106px;
-    }
-
-    .team-block.right .pick-indicator {
-      right: 106px;
-      text-align: right;
-    }
-
-    .team-inline {
-      display: flex;
-      align-items: center;
-      gap: 0;
-    }
-
-    .team-block.left .team-inline {
-      justify-content: flex-start;
-    }
-
-    .team-block.left .team-name {
-      justify-content: flex-start;
-      text-align: left;
-    }
-
-    .team-block.right .team-inline {
-      justify-content: flex-end;
-    }
-
-    .team-block.right .team-name {
-      justify-content: flex-end;
-      text-align: right;
-    }
-
-    .center-block {
-      text-align: center;
-    }
-
-    .score-row {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
-    }
-
-    .score-box {
-      width: var(--header-height);
-      height: var(--header-height);
-      background: var(--score-bg);
-      color: var(--text);
-      display: grid;
-      place-items: center;
-      font-size: calc(48px * var(--ui-font-scale));
-      font-weight: 800;
-    }
-
-    .match-name {
-      width: 320px;
-      height: 84px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      font-size: 28px;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      color: var(--text);
-      padding: 0 12px;
-      white-space: nowrap;
-      overflow: hidden;
-    }
-
-    .match-meta {
-      width: 320px;
-      height: var(--header-height);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-    }
-
-    .match-meta-content {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      max-width: 100%;
-      max-height: 100%;
-      width: 100%;
-    }
-
-    .match-meta-content.with-logo {
-      width: fit-content;
-      max-width: 100%;
-    }
-
-    .match-meta-content.with-logo .match-name {
-      height: auto;
-    }
-
-    .match-meta-content.has-linebreak .match-name {
-      white-space: pre-line;
-    }
-
-    .match-logo {
-      width: 60px;
-      height: 60px;
-      object-fit: contain;
-      display: none;
-      flex-shrink: 0;
-    }
-
-    .picking-text {
-      display: none;
     }
 
     .modes {
@@ -507,35 +320,7 @@
 <body>
   <div class="overlay loading" id="overlay">
     <div class="loading-screen" id="loadingScreen">LOADING...</div>
-    <header class="header">
-      <div class="team-block left" id="team1-block">
-        <div class="team-logo" id="team1-logo"></div>
-        <div class="team-inline">
-          <div class="team-name" id="team1-name"></div>
-          <div class="pick-indicator" id="pick-left"></div>
-        </div>
-      </div>
-      <div class="center-block">
-        <div class="score-row">
-          <div class="score-box" id="score-team1">0</div>
-          <div class="match-meta" id="match-meta">
-            <div class="match-meta-content" id="match-meta-content">
-              <img class="match-logo" id="match-logo" alt="match-logo" />
-              <div class="match-name" id="match-name">-</div>
-            </div>
-          </div>
-          <div class="score-box" id="score-team2">0</div>
-        </div>
-        <div class="picking-text" id="picking-text">-</div>
-      </div>
-      <div class="team-block right" id="team2-block">
-        <div class="team-inline">
-          <div class="team-name" id="team2-name"></div>
-          <div class="pick-indicator" id="pick-right"></div>
-        </div>
-        <div class="team-logo" id="team2-logo"></div>
-      </div>
-    </header>
+    <div id="shared-topbar-slot"></div>
 
     <main class="modes" id="modes"></main>
     <div class="empty-state hidden" id="empty-state">표시할 맵 풀이 없습니다.</div>
@@ -560,7 +345,17 @@
 
     const overlay = document.getElementById("overlay");
     const loadingScreen = document.getElementById("loadingScreen");
+    const sharedTopbarSlot = document.getElementById("shared-topbar-slot");
     let ws = null;
+
+    async function loadSharedTopbar() {
+      if (!sharedTopbarSlot) return;
+      const res = await fetch("/partials/shared-topbar.html", { cache: "no-store" });
+      if (!res.ok) {
+        throw new Error("공통 상단바를 불러오지 못했습니다.");
+      }
+      sharedTopbarSlot.innerHTML = await res.text();
+    }
 
     function setLoading(isLoading, text = "LOADING...") {
       overlay.classList.toggle("loading", isLoading);
@@ -921,6 +716,7 @@
     async function init() {
       setLoading(true, "LOADING...");
       try {
+        await loadSharedTopbar();
         const snapshot = await loadInitialSnapshot();
         render(snapshot);
         setLoading(false);
