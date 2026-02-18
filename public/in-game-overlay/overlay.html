@@ -53,7 +53,7 @@
             --img-padding: 8px;
             
             /* 밴 박스 너비 조정 (기본 50px) */
-            --ban-box-width: 40px;
+            --ban-box-width: 36px;
         }
 
         /* 1. 기본 설정 */
@@ -327,7 +327,7 @@
             };
             const safeState = state || {};
             const mapName = safeState.currentMapName || "-";
-            const rawMatchName = settings?.matchName || "";
+            const rawMatchName = settings?.matchName ?? "";
             document.getElementById('match-title').textContent = rawMatchName.replace(/\r?\n/g, "");
             const matchLogoEl = document.getElementById('match-logo-small');
             const matchLogo = settings?.matchLogo || "";

@@ -234,6 +234,15 @@ function buildBroadcastState({ settings, teams, state, history }) {
   };
 }
 
+function buildOverlaySnapshot() {
+  const snapshotData = loadAll();
+  applySidePickMeta(snapshotData);
+  applyBanPriorityMeta(snapshotData);
+  applyLayoutSwapMeta(snapshotData);
+  saveAll(snapshotData);
+  return buildBroadcastState(snapshotData);
+}
+
 app.get("/api/assets/maps", (req, res) => {
   refreshAssets();
   res.json(assets.maps);
@@ -267,6 +276,11 @@ app.get("/api/state", (req, res) => {
 app.get("/api/history", (req, res) => {
   const { history } = loadAll();
   res.json(history);
+});
+
+app.get("/api/overlay/snapshot", (req, res) => {
+  const snapshot = buildOverlaySnapshot();
+  res.json(snapshot);
 });
 
 app.post("/api/history", (req, res) => {
@@ -367,12 +381,7 @@ wss.on("connection", (ws) => {
     try {
       const data = JSON.parse(message.toString());
       if (data.type === "overlay:hello") {
-        const snapshotData = loadAll();
-        applySidePickMeta(snapshotData);
-        applyBanPriorityMeta(snapshotData);
-        applyLayoutSwapMeta(snapshotData);
-        saveAll(snapshotData);
-        const snapshot = buildBroadcastState(snapshotData);
+        const snapshot = buildOverlaySnapshot();
         send(ws, "overlay:update", snapshot);
         return;
       }

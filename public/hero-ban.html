@@ -22,6 +22,8 @@
         --map-image: none;
         --ui-font-scale: 1.2;
         --topbar-height: 110px;
+        --center-divider-width: 5px;
+        --center-divider-color: #111111;
       }
 
       * { box-sizing: border-box; }
@@ -37,7 +39,7 @@
         width: 100vw;
         height: 100vh;
         display: grid;
-        grid-template-rows: var(--topbar-height) 1fr 75px 90px;
+        grid-template-rows: var(--topbar-height) 90px 1fr 75px;
         background: var(--bg);
         position: relative;
       }
@@ -55,13 +57,29 @@
         z-index: 5;
       }
 
+      .loading-screen {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 36px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 6;
+      }
+
+      .hero-ban-overlay.loading > *:not(.loading-screen) {
+        visibility: hidden;
+      }
+
       .topbar {
         display: flex;
         grid-template-columns: 1fr auto 1fr;
         align-items: center;
         gap: 16px;
         background: #1A1A1A;
-        border-bottom: 3px solid #1a1a1a;
       }
 
       .team-block {
@@ -197,7 +215,7 @@
       .main-area {
         position: relative;
         display: grid;
-        grid-template-columns: 1fr 6px 1fr;
+        grid-template-columns: 1fr var(--center-divider-width) 1fr;
         align-items: stretch;
         background-image: var(--map-image);
         background-size: cover;
@@ -211,8 +229,8 @@
         inset: 0;
         z-index: 0;
         background: rgba(0, 0, 0, 0.12);
-        -webkit-backdrop-filter: blur(10px);
-        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(6px);
+        backdrop-filter: blur(6px);
         pointer-events: none;
       }
 
@@ -230,7 +248,20 @@
         height: 125%;
         object-fit: cover;
         object-position: center;
-        filter: drop-shadow(0 16px 32px rgba(0, 0, 0, 0.35));
+        opacity: 1;
+      }
+
+      .hero-panel video.fade-in {
+        animation: hero-video-fade-in 800ms ease-out both;
+      }
+
+      @keyframes hero-video-fade-in {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
       }
 
       .hero-placeholder {
@@ -246,7 +277,7 @@
       }
 
       .divider {
-        background: #111111;
+        background: var(--center-divider-color);
         z-index: 2;
       }
 
@@ -272,7 +303,7 @@
 
       .info-bar {
         display: grid;
-        grid-template-columns: 1fr 0.5fr 1fr;
+        grid-template-columns: 1fr 0.8fr 1fr;
         background: transparent;
         border-top: none;
         border-bottom: none;
@@ -282,7 +313,7 @@
       .info-cell {
         display: grid;
         place-items: center;
-        font-size: calc(24px * var(--ui-font-scale));
+        font-size: calc(26px * var(--ui-font-scale));
         font-weight: 700;
         text-transform: uppercase;
         border-right: none;
@@ -303,6 +334,7 @@
         background: rgba(255, 255, 255, 0.2);
         color: #FAFAF8;
         align-items: center;
+        position: relative;
       }
 
       .label-bar div {
@@ -312,16 +344,25 @@
         letter-spacing: 0.04em;
       }
 
-      .label-bar div + div {
-        border-left: 3px solid #1A1A1A;
+      .label-bar::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 50%;
+        width: var(--center-divider-width);
+        transform: translateX(-50%);
+        background: var(--center-divider-color);
+        z-index: 2;
       }
 
       .hidden { display: none !important; }
     </style>
   </head>
   <body>
-    <div class="hero-ban-overlay" id="overlay">
+    <div class="hero-ban-overlay loading" id="overlay">
       <div class="disabled hidden" id="disabled">HERO BAN DISABLED</div>
+      <div class="loading-screen" id="loadingScreen">LOADING...</div>
 
       <div class="topbar">
         <div class="team-block left">
@@ -346,15 +387,18 @@
         </div>
       </div>
 
+      <div class="label-bar">
+        <div id="labelLeft">Initial Ban</div>
+        <div id="labelRight">Follow-up Ban</div>
+      </div>
+
       <div class="main-area" id="main-area">
         <div class="hero-panel">
           <video id="heroLeftVideo" autoplay loop muted playsinline></video>
-          <div class="hero-placeholder" id="heroLeftPlaceholder">TEAM1 BANNED HERO VIDEO</div>
         </div>
         <div class="divider"></div>
         <div class="hero-panel">
           <video id="heroRightVideo" autoplay loop muted playsinline></video>
-          <div class="hero-placeholder" id="heroRightPlaceholder">TEAM2 BANNED HERO VIDEO</div>
         </div>
         <div class="mode-logo"><img id="modeLogo" alt="" /></div>
       </div>
@@ -364,17 +408,13 @@
         <div class="info-cell" id="map-name-bar">Map Name</div>
         <div class="info-cell" id="ban-name-right">Team2 Banned Hero Name</div>
       </div>
-
-      <div class="label-bar">
-        <div id="labelLeft">Initial Ban</div>
-        <div id="labelRight">Follow-up Ban</div>
-      </div>
     </div>
 
     <script>
-      const ws = new WebSocket(`ws://${location.host}`);
+      let ws = null;
       const overlay = document.getElementById("overlay");
       const disabled = document.getElementById("disabled");
+      const loadingScreen = document.getElementById("loadingScreen");
       const mainArea = document.getElementById("main-area");
 
       const team1Name = document.getElementById("team1-name");
@@ -400,6 +440,36 @@
       const heroLeftPlaceholder = document.getElementById("heroLeftPlaceholder");
       const heroRightPlaceholder = document.getElementById("heroRightPlaceholder");
       const modeLogo = document.getElementById("modeLogo");
+      const HERO_VIDEO_START_TIME = 0.5;
+
+      function setLoading(isLoading, text = "LOADING...") {
+        overlay.classList.toggle("loading", isLoading);
+        loadingScreen.textContent = text;
+        loadingScreen.classList.toggle("hidden", !isLoading);
+      }
+
+      async function loadInitialSnapshot() {
+        const res = await fetch("/api/overlay/snapshot", { cache: "no-store" });
+        if (!res.ok) {
+          throw new Error("초기 데이터를 불러오지 못했습니다.");
+        }
+        return res.json();
+      }
+
+      function connectOverlayWS() {
+        ws = new WebSocket(`ws://${location.host}`);
+
+        ws.addEventListener("open", () => {
+          ws.send(JSON.stringify({ type: "overlay:hello" }));
+        });
+
+        ws.addEventListener("message", (event) => {
+          const data = JSON.parse(event.data);
+          if (data.type === "overlay:update") {
+            render(data.payload);
+          }
+        });
+      }
 
       function setImage(el, src) {
         if (!src) {
@@ -415,6 +485,7 @@
       function setVideo(el, src, fallbackTextEl) {
         if (!src) {
           el.classList.add("hidden");
+          el.classList.remove("fade-in");
           el.removeAttribute("src");
           if (fallbackTextEl) fallbackTextEl.classList.remove("hidden");
           return;
@@ -423,7 +494,33 @@
         if (el.getAttribute("src") !== encoded) {
           el.setAttribute("src", encoded);
           el.load();
+          el.addEventListener("loadeddata", () => {
+            el.classList.remove("fade-in");
+            void el.offsetWidth;
+            el.classList.add("fade-in");
+          }, { once: true });
+          el.addEventListener("loadedmetadata", () => {
+            const startTime = Number.isFinite(el.duration) && el.duration > HERO_VIDEO_START_TIME
+              ? HERO_VIDEO_START_TIME
+              : 0;
+            try {
+              el.currentTime = startTime;
+            } catch (_) {}
+          }, { once: true });
         }
+        el.loop = false;
+        el.onended = () => {
+          const startTime = Number.isFinite(el.duration) && el.duration > HERO_VIDEO_START_TIME
+            ? HERO_VIDEO_START_TIME
+            : 0;
+          try {
+            el.currentTime = startTime;
+          } catch (_) {}
+          const replayPromise = el.play();
+          if (replayPromise && typeof replayPromise.catch === "function") {
+            replayPromise.catch(() => {});
+          }
+        };
         el.classList.remove("hidden");
         if (fallbackTextEl) fallbackTextEl.classList.add("hidden");
         const playPromise = el.play();
@@ -477,7 +574,7 @@
         const score = state.score || { team1: 0, team2: 0 };
         scoreTeam1.textContent = score.team1 ?? 0;
         scoreTeam2.textContent = score.team2 ?? 0;
-        const rawMatchName = settings.matchName || "Match Name";
+        const rawMatchName = settings.matchName ?? "";
         matchName.textContent = rawMatchName;
         const hasLineBreak = /\r?\n/.test(rawMatchName);
         matchMetaContent.classList.toggle("has-linebreak", hasLineBreak);
@@ -486,6 +583,10 @@
           matchLogo.src = encodeURI(matchLogoSrc);
           matchLogo.style.display = "block";
           matchMetaContent.classList.add("with-logo");
+          if (rawMatchName.length < 1) {
+            matchLogo.style.height = "100px";
+            matchLogo.style.width = "auto";
+          }
         } else {
           matchLogo.removeAttribute("src");
           matchLogo.style.display = "none";
@@ -523,8 +624,8 @@
         const heroA = banA ? heroMap.get(banA) : null;
         const heroB = banB ? heroMap.get(banB) : null;
 
-        banNameLeft.textContent = heroA ? heroA.name : "TBD";
-        banNameRight.textContent = heroB ? heroB.name : "TBD";
+        banNameLeft.textContent = heroA ? heroA.name : "";
+        banNameRight.textContent = heroB ? heroB.name : "";
 
         const heroAVideo = heroA && heroA.image
           ? heroA.image.replace("/img/hero/", "/video/hero/").replace(/\.png$/i, ".webm")
@@ -537,18 +638,21 @@
         setVideo(heroRightVideo, heroBVideo, heroRightPlaceholder);
       }
 
-      ws.addEventListener("open", () => {
-        ws.send(JSON.stringify({ type: "overlay:hello" }));
-      });
-
-      ws.addEventListener("message", (event) => {
-        const data = JSON.parse(event.data);
-        if (data.type === "overlay:update") {
-          render(data.payload);
+      async function init() {
+        setLoading(true, "LOADING...");
+        try {
+          const snapshot = await loadInitialSnapshot();
+          render(snapshot);
+          setLoading(false);
+          connectOverlayWS();
+        } catch (error) {
+          setLoading(true, "DATA LOADING...");
+          setTimeout(init, 1200);
         }
-      });
+      }
 
       window.addEventListener("resize", fitMatchNameText);
+      init();
     </script>
   </body>
 </html>

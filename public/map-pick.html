@@ -46,6 +46,25 @@
       display: flex;
       flex-direction: column;
       background: rgba(0, 0, 0, 0.0);
+      position: relative;
+    }
+
+    .loading-screen {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      background: rgba(0, 0, 0, 0.85);
+      color: var(--text);
+      z-index: 20;
+    }
+
+    .overlay.loading > *:not(.loading-screen) {
+      visibility: hidden;
     }
 
     .header {
@@ -54,7 +73,6 @@
       align-items: center;
       padding: 0;
       background: var(--bg);
-      border-bottom: 3px solid #1A1A1A;
       gap: 16px;
       font-family: "Pretendard", "Noto Sans KR", system-ui, sans-serif;
     }
@@ -286,6 +304,22 @@
       position: relative;
       overflow: hidden;
       border: var(--border-width) solid transparent;
+      --status-border-color: transparent;
+    }
+
+    .map-card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border: var(--border-width) solid transparent;
+      pointer-events: none;
+      z-index: 5;
+      box-sizing: border-box;
+    }
+
+    .map-card.state-win::after,
+    .map-card.state-selecting::after {
+      border-color: var(--status-border-color);
     }
 
     .map-image {
@@ -295,6 +329,14 @@
       background-position: center;
       background-color: #1f2937;
       filter: none;
+    }
+
+    .map-image::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: transparent;
+      pointer-events: none;
     }
 
     .map-label {
@@ -440,7 +482,7 @@
       filter: grayscale(1);
     }
 
-    .state-disabled .map-overlay {
+    .state-disabled .map-image::after {
       background: var(--disabled-overlay);
     }
 
@@ -463,7 +505,8 @@
   </style>
 </head>
 <body>
-  <div class="overlay">
+  <div class="overlay loading" id="overlay">
+    <div class="loading-screen" id="loadingScreen">LOADING...</div>
     <header class="header">
       <div class="team-block left" id="team1-block">
         <div class="team-logo" id="team1-logo"></div>
@@ -515,24 +558,44 @@
       escort: "/img/icon/호위.png"
     };
 
-    const wsProtocol = location.protocol === "https:" ? "wss" : "ws";
-    const wsHost = location.host || "localhost:3000";
-    const ws = new WebSocket(`${wsProtocol}://${wsHost}`);
+    const overlay = document.getElementById("overlay");
+    const loadingScreen = document.getElementById("loadingScreen");
+    let ws = null;
 
-    ws.addEventListener("open", () => {
-      ws.send(JSON.stringify({ type: "overlay:hello" }));
-    });
+    function setLoading(isLoading, text = "LOADING...") {
+      overlay.classList.toggle("loading", isLoading);
+      loadingScreen.textContent = text;
+      loadingScreen.classList.toggle("hidden", !isLoading);
+    }
 
-    ws.addEventListener("message", (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === "overlay:update") {
-        render(data.payload);
+    async function loadInitialSnapshot() {
+      const res = await fetch("/api/overlay/snapshot", { cache: "no-store" });
+      if (!res.ok) {
+        throw new Error("초기 데이터를 불러오지 못했습니다.");
       }
-    });
+      return res.json();
+    }
 
-    ws.addEventListener("close", () => {
-      setTimeout(() => location.reload(), 1500);
-    });
+    function connectOverlayWS() {
+      const wsProtocol = location.protocol === "https:" ? "wss" : "ws";
+      const wsHost = location.host || "localhost:3000";
+      ws = new WebSocket(`${wsProtocol}://${wsHost}`);
+
+      ws.addEventListener("open", () => {
+        ws.send(JSON.stringify({ type: "overlay:hello" }));
+      });
+
+      ws.addEventListener("message", (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === "overlay:update") {
+          render(data.payload);
+        }
+      });
+
+      ws.addEventListener("close", () => {
+        setTimeout(() => location.reload(), 1500);
+      });
+    }
 
     function fitMatchNameText() {
       const matchNameEl = document.getElementById("match-name");
@@ -643,10 +706,10 @@
           card.className = `map-card state-${status.type}`;
 
           if (status.type === "win") {
-            card.style.borderColor = status.team.color;
+            card.style.setProperty("--status-border-color", status.team.color);
           }
           if (status.type === "selecting") {
-            card.style.borderColor = status.team.color;
+            card.style.setProperty("--status-border-color", status.team.color);
           }
 
           const image = document.createElement("div");
@@ -699,10 +762,6 @@
             }
 
             overlay.appendChild(badge);
-          }
-
-          if (status.type === "disabled") {
-            overlay.style.background = "var(--disabled-overlay)";
           }
 
           card.appendChild(overlay);
@@ -759,7 +818,7 @@
 
       document.getElementById("score-team1").textContent = score.team1 ?? 0;
       document.getElementById("score-team2").textContent = score.team2 ?? 0;
-      const rawMatchName = settings.matchName || "-";
+      const rawMatchName = settings.matchName ?? "";
       document.getElementById("match-name").textContent = rawMatchName;
       const matchLogo = document.getElementById("match-logo");
       const matchMetaContent = document.getElementById("match-meta-content");
@@ -770,6 +829,10 @@
         matchLogo.src = matchLogoSrc;
         matchLogo.style.display = "block";
         matchMetaContent.classList.add("with-logo");
+        if (rawMatchName.length < 1) {
+          matchLogo.style.height = "100px";
+          matchLogo.style.width = "auto";
+        }
       } else {
         matchLogo.src = "";
         matchLogo.style.display = "none";
@@ -855,7 +918,21 @@
       return `rgba(${r}, ${g}, ${b}, ${alpha})`;
     }
 
+    async function init() {
+      setLoading(true, "LOADING...");
+      try {
+        const snapshot = await loadInitialSnapshot();
+        render(snapshot);
+        setLoading(false);
+        connectOverlayWS();
+      } catch (error) {
+        setLoading(true, "DATA LOADING...");
+        setTimeout(init, 1200);
+      }
+    }
+
     window.addEventListener("resize", fitMatchNameText);
+    init();
 
   </script>
 </body>
