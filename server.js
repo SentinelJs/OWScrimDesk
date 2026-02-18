@@ -1,5 +1,6 @@
 const path = require("path");
 const http = require("http");
+const os = require("os");
 const express = require("express");
 const WebSocket = require("ws");
 const { readJson, writeJsonAtomic, ensureDir } = require("./src/storage");
@@ -512,6 +513,19 @@ wss.on("connection", (ws) => {
   });
 });
 
-server.listen(3000, () => {
+server.listen(3000, "0.0.0.0", () => {
   console.log("Server running at http://localhost:3000");
+  const nets = os.networkInterfaces();
+  const lanIps = [];
+
+  Object.values(nets).forEach((items) => {
+    (items || []).forEach((item) => {
+      if (!item || item.family !== "IPv4" || item.internal) return;
+      lanIps.push(item.address);
+    });
+  });
+
+  lanIps.forEach((ip) => {
+    console.log(`LAN access: http://${ip}:3000`);
+  });
 });
