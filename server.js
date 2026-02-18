@@ -9,7 +9,6 @@ const { extractDominantColor } = require("./dominant-color");
 
 const ROOT_DIR = __dirname;
 const DATA_DIR = path.join(ROOT_DIR, "data");
-const IN_GAME_OVERLAY_DIR = path.join(ROOT_DIR, "public", "in-game-overlay");
 const IN_GAME_ASSETS_DIR = path.join(ROOT_DIR, "public", "in-game-assets");
 
 ensureDir(DATA_DIR);
@@ -180,7 +179,7 @@ app.use(express.static(path.join(ROOT_DIR, "public")));
 app.use("/in-game-assets", express.static(IN_GAME_ASSETS_DIR));
 
 app.get("/in-game-overlay", (req, res) => {
-  res.sendFile(path.join(IN_GAME_OVERLAY_DIR, "overlay.html"));
+  res.sendFile(path.join(ROOT_DIR, "public", "overlay.html"));
 });
 
 app.get("/map-pick", (req, res) => {
