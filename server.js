@@ -190,6 +190,10 @@ app.get("/hero-ban", (req, res) => {
   res.sendFile(path.join(ROOT_DIR, "public", "hero-ban.html"));
 });
 
+app.get("/game-history", (req, res) => {
+  res.sendFile(path.join(ROOT_DIR, "public", "game-history.html"));
+});
+
 let assets = {
   maps: scanMaps(ROOT_DIR),
   heroes: scanHeroes(ROOT_DIR)

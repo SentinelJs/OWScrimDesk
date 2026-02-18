@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OW2 Game History Overlay</title>
+  <link rel="stylesheet" href="/css/shared-topbar.css" />
+  <style>
+    :root {
+      --bg: #1A1A1A;
+      --text: #FAFAF8;
+      --muted: rgba(255, 255, 255, 0.72);
+      --score-bg: #c9ac55;
+      --header-height: 110px;
+      --ui-font-scale: 1.2;
+      --card-gap: 2px;
+      --card-top-height: 56px;
+      --card-bans-height: 160px;
+      --card-mapname-height: 65px;
+      --ban-card-width: clamp(50px, 3.8vw, 78px);
+      --ban-label-height: clamp(16px, 1.1vw, 21px);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Pretendard", "Noto Sans KR", system-ui, sans-serif;
+    }
+
+    .game-history-overlay {
+      width: 100vw;
+      height: 100vh;
+      display: grid;
+      grid-template-rows: var(--header-height) 1fr;
+      background: var(--bg);
+      position: relative;
+    }
+
+    .loading-screen {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 20;
+    }
+
+    .game-history-overlay.loading > *:not(.loading-screen) {
+      visibility: hidden;
+    }
+
+    #shared-topbar-slot .pick-indicator,
+    #shared-topbar-slot .picking-text {
+      display: none;
+    }
+
+    #shared-topbar-slot .team-logo img {
+      width: 70%;
+      height: 70%;
+      object-fit: contain;
+      object-position: center;
+      display: block;
+    }
+
+    .history-board {
+      display: grid;
+      gap: var(--card-gap);
+      width: 100%;
+      height: 100%;
+      background: #111;
+      padding: 0;
+    }
+
+    .slot-card {
+      position: relative;
+      min-width: 0;
+      overflow: hidden;
+      background: #1f1f1f;
+      /* border: 1px solid rgba(255, 255, 255, 0.07); */
+      display: grid;
+      grid-template-rows: 1fr;
+    }
+
+    .slot-card.pending {
+      background: #2a2a2a;
+    }
+
+    .slot-bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-size: cover;
+      background-position: center;
+      z-index: 0;
+      filter: saturate(0.96);
+    }
+
+    .slot-card.played .slot-bg,
+    .slot-card.current .slot-bg {
+      bottom: var(--card-mapname-height);
+    }
+
+    .slot-card.played .slot-bg::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.82) 0%, rgba(0, 0, 0, 0.70) 46%, rgba(0, 0, 0, 0.0) 100%);
+    }
+
+    /* .slot-card.current .slot-bg::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.72) 0%, rgba(0, 0, 0, 0.34) 42%, rgba(0, 0, 0, 0.0) 74%);
+    } */
+
+    .slot-inner {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+    }
+
+    .slot-card.played .slot-inner,
+    .slot-card.current .slot-inner {
+      display: grid;
+      grid-template-rows: minmax(0, 1fr) var(--card-mapname-height);
+    }
+
+    .slot-visual {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: var(--card-top-height) 1fr var(--card-bans-height);
+    }
+
+    .slot-card.pending .slot-visual {
+      grid-template-rows: var(--card-top-height) 1fr;
+    }
+
+    .map-index {
+      display: grid;
+      place-items: center;
+      font-size: clamp(18px, 1.45vw, 30px);
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.65);
+    }
+
+    .winner-area {
+      display: grid;
+      place-items: center;
+      padding: 8px;
+    }
+
+    .winner-badge {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      height: 100%;
+      max-height: 240px;
+      text-align: center;
+    }
+
+    .winner-logo {
+      width: clamp(60px, 10vw, 110px);
+      height: clamp(60px,10vw, 110px);
+      object-fit: contain;
+    }
+
+    .winner-name {
+      font-size: clamp(22px, 1.9vw, 34px);
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      text-shadow: 0 3px 8px rgba(0, 0, 0, 0.75);
+    }
+
+    .bans-row {
+      display: grid;
+      align-items: start;
+      justify-items: center;
+    }
+
+    .ban-cell-group {
+      display: grid;
+      grid-template-columns: auto auto auto;
+      align-items: center;
+      justify-items: center;
+      column-gap: 40px;
+      width: max-content;
+      justify-self: center;
+      align-self: start;
+    }
+
+    .ban-cell {
+      display: grid;
+      justify-items: center;
+      align-content: start;
+      height: 100%;
+    }
+
+    .hero-ban-card {
+      gap: 0;
+    }
+
+    .ban-label {
+      width: var(--ban-card-width);
+      height: var(--ban-label-height);
+      display: grid;
+      place-items: center;
+      background: #000;
+      color: #fff;
+      font-size: clamp(11px, 0.85vw, 14px);
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+
+    .ban-media {
+      width: var(--ban-card-width);
+      aspect-ratio: 1 / 1;
+      display: grid;
+      place-items: center;
+      background: #fff;
+      padding: 2px;
+    }
+
+    .ban-hero {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      background: #fff;
+    }
+
+    .ban-placeholder {
+      width: 100%;
+      height: 100%;
+      opacity: 0.6;
+      background: rgba(255, 255, 255, 0.92);
+    }
+
+    .mode-icon {
+      width: clamp(30px, 3vw, 46px);
+      height: clamp(30px, 3vw, 46px);
+      object-fit: contain;
+      opacity: 0.95;
+    }
+
+    .mode-cell {
+      align-content: center;
+      justify-items: center;
+      height: auto;
+    }
+
+    .map-name {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 0 10px;
+      font-size: clamp(18px, 1.35vw, 28px);
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      background: rgba(0, 0, 0, 0.68);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.75);
+    }
+
+    .hidden { display: none !important; }
+
+    .empty-state {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: 30px;
+      letter-spacing: 0.04em;
+    }
+  </style>
+</head>
+<body>
+  <div class="game-history-overlay loading" id="overlay">
+    <div class="loading-screen" id="loadingScreen">LOADING...</div>
+    <div id="shared-topbar-slot"></div>
+    <main class="history-board" id="history-board"></main>
+    <div class="empty-state hidden" id="empty-state">표시할 경기 슬롯이 없습니다.</div>
+  </div>
+
+  <script src="/js/shared-topbar.js"></script>
+  <script>
+    const MODE_ICONS = {
+      control: "/img/icon/쟁탈.png",
+      hybrid: "/img/icon/하이브리드.png",
+      push: "/img/icon/밀기.png",
+      flashpoint: "/img/icon/플래시포인트.png",
+      escort: "/img/icon/호위.png"
+    };
+
+    let ws = null;
+
+    const overlay = document.getElementById("overlay");
+    const loadingScreen = document.getElementById("loadingScreen");
+    const sharedTopbarSlot = document.getElementById("shared-topbar-slot");
+    const historyBoard = document.getElementById("history-board");
+    const emptyState = document.getElementById("empty-state");
+    let topbar = null;
+
+    function setLoading(isLoading, text = "LOADING...") {
+      overlay.classList.toggle("loading", isLoading);
+      loadingScreen.textContent = text;
+      loadingScreen.classList.toggle("hidden", !isLoading);
+    }
+
+    async function loadInitialSnapshot() {
+      const res = await fetch("/api/overlay/snapshot", { cache: "no-store" });
+      if (!res.ok) {
+        throw new Error("초기 데이터를 불러오지 못했습니다.");
+      }
+      return res.json();
+    }
+
+    function connectOverlayWS() {
+      const wsProtocol = location.protocol === "https:" ? "wss" : "ws";
+      const wsHost = location.host || "localhost:3000";
+      ws = new WebSocket(`${wsProtocol}://${wsHost}`);
+
+      ws.addEventListener("open", () => {
+        ws.send(JSON.stringify({ type: "overlay:hello" }));
+      });
+
+      ws.addEventListener("message", (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === "overlay:update") {
+          render(data.payload);
+        }
+      });
+
+      ws.addEventListener("close", () => {
+        setTimeout(() => location.reload(), 1500);
+      });
+    }
+
+    function parseSeriesToSlotCount(series) {
+      const raw = String(series || "");
+      const match = raw.match(/\d+/);
+      const bo = match ? Number(match[0]) : 3;
+      const bestOf = Number.isFinite(bo) && bo > 0 ? bo : 3;
+      return Math.max(1, bestOf * 2 - 1);
+    }
+
+    function createHeroCell(heroById, heroId) {
+      const wrapper = document.createElement("div");
+      wrapper.className = "ban-cell hero-ban-card";
+
+      const label = document.createElement("div");
+      label.className = "ban-label";
+      label.textContent = "BAN";
+      wrapper.appendChild(label);
+
+      const media = document.createElement("div");
+      media.className = "ban-media";
+
+      const hero = heroId ? heroById.get(heroId) : null;
+      if (hero && hero.image) {
+        const img = document.createElement("img");
+        img.className = "ban-hero";
+        img.src = hero.image;
+        img.alt = hero.name || "ban-hero";
+        media.appendChild(img);
+        wrapper.appendChild(media);
+        return wrapper;
+      }
+
+      const placeholder = document.createElement("div");
+      placeholder.className = "ban-placeholder";
+      media.appendChild(placeholder);
+      wrapper.appendChild(media);
+      return wrapper;
+    }
+
+    function render(payload) {
+      if (!payload) return;
+
+      const settings = payload.settings || {};
+      const teams = payload.teams || {};
+      const state = payload.state || {};
+      const history = Array.isArray(payload.history) ? payload.history : [];
+      const score = payload.score || { team1: 0, team2: 0 };
+      const assets = payload.assets || { maps: [], heroes: [] };
+
+      const safeTeams = {
+        team1: { id: "team1", name: "Team 1", color: "#e6335a", logo: "", ...(teams.team1 || {}) },
+        team2: { id: "team2", name: "Team 2", color: "#02f7f8", logo: "", ...(teams.team2 || {}) }
+      };
+
+      topbar?.update({
+        teams: safeTeams,
+        score,
+        settings,
+        history,
+        currentMatchIndex: state.currentMatchIndex || 1,
+        showPickIndicator: false
+      });
+
+      const slotCount = parseSeriesToSlotCount(settings.series);
+      if (!slotCount) {
+        historyBoard.classList.add("hidden");
+        emptyState.classList.remove("hidden");
+        return;
+      }
+
+      historyBoard.classList.remove("hidden");
+      emptyState.classList.add("hidden");
+      historyBoard.style.gridTemplateColumns = `repeat(${slotCount}, minmax(0, 1fr))`;
+      historyBoard.innerHTML = "";
+
+      const mapsById = new Map((assets.maps || []).map((map) => [map.id, map]));
+      const heroesById = new Map((assets.heroes || []).map((hero) => [hero.id, hero]));
+      const historyByIndex = new Map(history.map((game) => [game.index, game]));
+
+      for (let index = 1; index <= slotCount; index += 1) {
+        const played = historyByIndex.get(index);
+        const isCurrent = !played && index === (state.currentMatchIndex || 1) && !!state.currentMapId;
+
+        const card = document.createElement("section");
+        card.className = "slot-card";
+
+        let mapData = null;
+        let mapName = "";
+        let mapMode = "";
+        let mapImage = "";
+        let bans = { team1: "", team2: "" };
+
+        if (played) {
+          card.classList.add("played");
+          mapData = mapsById.get(played.mapId) || null;
+          mapName = played.mapName || (mapData ? mapData.name : "");
+          mapMode = played.mapMode || (mapData ? mapData.mode : "");
+          mapImage = mapData?.image || "";
+          bans = played.bans || { team1: "", team2: "" };
+        } else if (isCurrent) {
+          card.classList.add("current");
+          mapData = mapsById.get(state.currentMapId) || null;
+          mapName = state.currentMapName || (mapData ? mapData.name : "");
+          mapMode = state.currentMapMode || (mapData ? mapData.mode : "");
+          mapImage = mapData?.image || "";
+          bans = state.bans || { team1: "", team2: "" };
+        } else {
+          card.classList.add("pending");
+        }
+
+        if (mapImage) {
+          const bg = document.createElement("div");
+          bg.className = "slot-bg";
+          bg.style.backgroundImage = `url('${mapImage}')`;
+          card.appendChild(bg);
+        }
+
+        const inner = document.createElement("div");
+        inner.className = "slot-inner";
+
+        const visual = document.createElement("div");
+        visual.className = "slot-visual";
+
+        const mapIndex = document.createElement("div");
+        mapIndex.className = "map-index";
+        mapIndex.textContent = `MAP ${index}`;
+        visual.appendChild(mapIndex);
+
+        if (!card.classList.contains("pending")) {
+          const winnerArea = document.createElement("div");
+          winnerArea.className = "winner-area";
+
+          if (played && played.winner) {
+            const team = played.winner === "team2" ? safeTeams.team2 : safeTeams.team1;
+            const badge = document.createElement("div");
+            badge.className = "winner-badge";
+
+            if (team.logo) {
+              const logo = document.createElement("img");
+              logo.className = "winner-logo";
+              logo.src = team.logo;
+              logo.alt = team.name;
+              badge.appendChild(logo);
+            }
+
+            const winnerName = document.createElement("div");
+            winnerName.className = "winner-name";
+            winnerName.textContent = team.name;
+            badge.appendChild(winnerName);
+
+            winnerArea.appendChild(badge);
+          }
+
+          visual.appendChild(winnerArea);
+
+          const bansRow = document.createElement("div");
+          bansRow.className = "bans-row";
+
+          const banCellGroup = document.createElement("div");
+          banCellGroup.className = "ban-cell-group";
+
+          banCellGroup.appendChild(createHeroCell(heroesById, bans.team1));
+
+          const modeCell = document.createElement("div");
+          modeCell.className = "ban-cell mode-cell";
+          const iconSrc = MODE_ICONS[mapMode] || "";
+          if (iconSrc) {
+            const modeIcon = document.createElement("img");
+            modeIcon.className = "mode-icon";
+            modeIcon.src = iconSrc;
+            modeIcon.alt = mapMode || "mode";
+            modeCell.appendChild(modeIcon);
+          }
+          banCellGroup.appendChild(modeCell);
+
+          banCellGroup.appendChild(createHeroCell(heroesById, bans.team2));
+
+          bansRow.appendChild(banCellGroup);
+
+          visual.appendChild(bansRow);
+
+          inner.appendChild(visual);
+
+          const mapNameBar = document.createElement("div");
+          mapNameBar.className = "map-name";
+          mapNameBar.textContent = mapName || "-";
+          inner.appendChild(mapNameBar);
+        } else {
+          inner.appendChild(visual);
+        }
+
+        card.appendChild(inner);
+        historyBoard.appendChild(card);
+      }
+    }
+
+    async function init() {
+      setLoading(true, "LOADING...");
+      try {
+        topbar = await SharedTopbar.mount(sharedTopbarSlot);
+        const snapshot = await loadInitialSnapshot();
+        render(snapshot);
+        setLoading(false);
+        connectOverlayWS();
+      } catch (error) {
+        setLoading(true, "DATA LOADING...");
+        setTimeout(init, 1200);
+      }
+    }
+
+    window.addEventListener("resize", () => topbar?.fitMatchNameText());
+    init();
+  </script>
+</body>
+</html>

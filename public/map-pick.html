@@ -326,6 +326,7 @@
     <div class="empty-state hidden" id="empty-state">표시할 맵 풀이 없습니다.</div>
   </div>
 
+  <script src="/js/shared-topbar.js"></script>
   <script>
     const MODE_ORDER = ["control", "hybrid", "push", "flashpoint", "escort"];
     const MODE_LABELS = {
@@ -347,15 +348,7 @@
     const loadingScreen = document.getElementById("loadingScreen");
     const sharedTopbarSlot = document.getElementById("shared-topbar-slot");
     let ws = null;
-
-    async function loadSharedTopbar() {
-      if (!sharedTopbarSlot) return;
-      const res = await fetch("/partials/shared-topbar.html", { cache: "no-store" });
-      if (!res.ok) {
-        throw new Error("공통 상단바를 불러오지 못했습니다.");
-      }
-      sharedTopbarSlot.innerHTML = await res.text();
-    }
+    let topbar = null;
 
     function setLoading(isLoading, text = "LOADING...") {
       overlay.classList.toggle("loading", isLoading);
@@ -392,34 +385,6 @@
       });
     }
 
-    function fitMatchNameText() {
-      const matchNameEl = document.getElementById("match-name");
-      const matchMetaContent = document.getElementById("match-meta-content");
-      if (!matchNameEl) return;
-
-      const hasLogo = !!matchMetaContent && matchMetaContent.classList.contains("with-logo");
-      const maxFont = 28;
-      const minFont = 14;
-      const gap = 6;
-      const logoHeight = hasLogo ? 60 : 0;
-      const containerHeight = (matchMetaContent && matchMetaContent.clientHeight) || 84;
-      const availableHeight = hasLogo
-        ? Math.max(minFont + 4, containerHeight - logoHeight - gap)
-        : 84;
-
-      // matchNameEl.style.height = `${availableHeight}px`;
-      matchNameEl.style.fontSize = `${maxFont}px`;
-
-      let currentFont = maxFont;
-      while (
-        currentFont > minFont
-        && (matchNameEl.scrollWidth > matchNameEl.clientWidth || matchNameEl.scrollHeight > matchNameEl.clientHeight)
-      ) {
-        currentFont -= 1;
-        matchNameEl.style.fontSize = `${currentFont}px`;
-      }
-    }
-
     function render(payload) {
       if (!payload) return;
       const settings = payload.settings || {};
@@ -434,7 +399,15 @@
         team2: { id: "team2", name: "Team 2", color: "#02f7f8", logo: "", ...(teams.team2 || {}) }
       };
 
-      setHeader(safeTeams, score, settings, state, history);
+      topbar?.update({
+        teams: safeTeams,
+        score,
+        settings,
+        history,
+        currentMatchIndex: state.currentMatchIndex || 1,
+        showPickIndicator: true,
+        pickLabel: "MAP PICK"
+      });
 
       const mapPoolsByMode = buildMapPoolsByMode(settings, assets.maps);
       const activeModes = MODE_ORDER.filter((mode) => (mapPoolsByMode[mode] || []).length > 0);
@@ -599,71 +572,6 @@
       });
     }
 
-    function setHeader(teams, score, settings, state, history) {
-      const team1Name = document.getElementById("team1-name");
-      const team2Name = document.getElementById("team2-name");
-      const team1Logo = document.getElementById("team1-logo");
-      const team2Logo = document.getElementById("team2-logo");
-
-      team1Name.textContent = teams.team1.name;
-      team2Name.textContent = teams.team2.name;
-
-      updateLogo(team1Logo, teams.team1.logo);
-      updateLogo(team2Logo, teams.team2.logo);
-
-      document.getElementById("score-team1").textContent = score.team1 ?? 0;
-      document.getElementById("score-team2").textContent = score.team2 ?? 0;
-      const rawMatchName = settings.matchName ?? "";
-      document.getElementById("match-name").textContent = rawMatchName;
-      const matchLogo = document.getElementById("match-logo");
-      const matchMetaContent = document.getElementById("match-meta-content");
-      const hasLineBreak = /\r?\n/.test(rawMatchName);
-      matchMetaContent.classList.toggle("has-linebreak", hasLineBreak);
-      const matchLogoSrc = settings.matchLogo || "";
-      if (matchLogoSrc) {
-        matchLogo.src = matchLogoSrc;
-        matchLogo.style.display = "block";
-        matchMetaContent.classList.add("with-logo");
-        if (rawMatchName.length < 1) {
-          matchLogo.style.height = "100px";
-          matchLogo.style.width = "auto";
-        }
-      } else {
-        matchLogo.src = "";
-        matchLogo.style.display = "none";
-        matchMetaContent.classList.remove("with-logo");
-      }
-      fitMatchNameText();
-
-      const pickingTeam = getPickingTeam(settings, history, state.currentMatchIndex || 1);
-      document.getElementById("picking-text").textContent = "";
-
-      const pickLeft = document.getElementById("pick-left");
-      const pickRight = document.getElementById("pick-right");
-      if (pickingTeam === "team1") {
-        pickLeft.textContent = "MAP PICK";
-        pickRight.textContent = "";
-      } else if (pickingTeam === "team2") {
-        pickLeft.textContent = "";
-        pickRight.textContent = "MAP PICK";
-      } else {
-        pickLeft.textContent = "";
-        pickRight.textContent = "";
-      }
-    }
-
-    function updateLogo(container, logoUrl) {
-      container.innerHTML = "";
-      if (!logoUrl) {
-        container.style.display = "none";
-        return;
-      }
-      container.style.display = "grid";
-      const img = document.createElement("img");
-      img.src = logoUrl;
-      container.appendChild(img);
-    }
-
     function buildMapPoolsByMode(settings, maps) {
       const pools = {};
       MODE_ORDER.forEach((mode) => {
@@ -716,7 +624,7 @@
     async function init() {
       setLoading(true, "LOADING...");
       try {
-        await loadSharedTopbar();
+        topbar = await SharedTopbar.mount(sharedTopbarSlot);
         const snapshot = await loadInitialSnapshot();
         render(snapshot);
         setLoading(false);
@@ -727,7 +635,7 @@
       }
     }
 
-    window.addEventListener("resize", fitMatchNameText);
+    window.addEventListener("resize", () => topbar?.fitMatchNameText());
     init();
 
   </script>

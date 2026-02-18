@@ -253,6 +253,7 @@
       </div>
     </div>
 
+    <script src="/js/shared-topbar.js"></script>
     <script>
       let ws = null;
       const overlay = document.getElementById("overlay");
@@ -260,17 +261,7 @@
       const loadingScreen = document.getElementById("loadingScreen");
       const sharedTopbarSlot = document.getElementById("shared-topbar-slot");
       const mainArea = document.getElementById("main-area");
-
-      let team1Name = null;
-      let team2Name = null;
-      let team1Logo = null;
-      let team2Logo = null;
-
-      let scoreTeam1 = null;
-      let scoreTeam2 = null;
-      let matchName = null;
-      let matchLogo = null;
-      let matchMetaContent = null;
+      let topbar = null;
 
       const labelLeft = document.getElementById("labelLeft");
       const labelRight = document.getElementById("labelRight");
@@ -285,28 +276,6 @@
       const heroRightPlaceholder = document.getElementById("heroRightPlaceholder");
       const modeLogo = document.getElementById("modeLogo");
       const HERO_VIDEO_START_TIME = 0.5;
-
-      function cacheTopbarElements() {
-        team1Name = document.getElementById("team1-name");
-        team2Name = document.getElementById("team2-name");
-        team1Logo = document.getElementById("team1-logo");
-        team2Logo = document.getElementById("team2-logo");
-        scoreTeam1 = document.getElementById("score-team1");
-        scoreTeam2 = document.getElementById("score-team2");
-        matchName = document.getElementById("match-name");
-        matchLogo = document.getElementById("match-logo");
-        matchMetaContent = document.getElementById("match-meta-content");
-      }
-
-      async function loadSharedTopbar() {
-        if (!sharedTopbarSlot) return;
-        const res = await fetch("/partials/shared-topbar.html", { cache: "no-store" });
-        if (!res.ok) {
-          throw new Error("공통 상단바를 불러오지 못했습니다.");
-        }
-        sharedTopbarSlot.innerHTML = await res.text();
-        cacheTopbarElements();
-      }
 
       function setLoading(isLoading, text = "LOADING...") {
         overlay.classList.toggle("loading", isLoading);
@@ -347,20 +316,6 @@
         const encoded = encodeURI(src);
         el.setAttribute("src", encoded);
         el.classList.remove("hidden");
-      }
-
-      function updateLogo(container, logoUrl) {
-        if (!container) return;
-        container.innerHTML = "";
-        if (!logoUrl) {
-          container.style.display = "none";
-          return;
-        }
-        container.style.display = "grid";
-        const img = document.createElement("img");
-        img.src = encodeURI(logoUrl);
-        img.alt = "";
-        container.appendChild(img);
       }
 
       function setVideo(el, src, fallbackTextEl) {
@@ -414,36 +369,8 @@
         };
       }
 
-      function fitMatchNameText() {
-        if (!matchName || !matchMetaContent) return;
-        const hasLogo = matchMetaContent.classList.contains("with-logo");
-        const maxFont = 28;
-        const minFont = 14;
-        const gap = 6;
-        const logoHeight = hasLogo ? 60 : 0;
-        const containerHeight = matchMetaContent.clientHeight || 84;
-        const availableHeight = hasLogo
-          ? Math.max(minFont + 4, containerHeight - logoHeight - gap)
-          : 84;
-
-        // matchName.style.height = `${availableHeight}px`;
-        matchName.style.fontSize = `${maxFont}px`;
-
-        let currentFont = maxFont;
-        while (
-          currentFont > minFont
-          && (matchName.scrollWidth > matchName.clientWidth || matchName.scrollHeight > matchName.clientHeight)
-        ) {
-          currentFont -= 1;
-          matchName.style.fontSize = `${currentFont}px`;
-        }
-      }
-
       function render(state) {
         if (!state) return;
-        if (!team1Name || !team2Name || !team1Logo || !team2Logo || !scoreTeam1 || !scoreTeam2 || !matchName || !matchLogo || !matchMetaContent) {
-          return;
-        }
         const settings = state.settings || {};
         disabled.classList.toggle("hidden", settings.enableHeroBan !== false);
 
@@ -451,33 +378,18 @@
         const team1 = teams.team1 || { name: "Team 1", color: "#e6335a", logo: "" };
         const team2 = teams.team2 || { name: "Team 2", color: "#02f7f8", logo: "" };
 
-        team1Name.textContent = team1.name || "Team 1";
-        team2Name.textContent = team2.name || "Team 2";
-        updateLogo(team1Logo, team1.logo || "");
-        updateLogo(team2Logo, team2.logo || "");
-
         const score = state.score || { team1: 0, team2: 0 };
-        scoreTeam1.textContent = score.team1 ?? 0;
-        scoreTeam2.textContent = score.team2 ?? 0;
-        const rawMatchName = settings.matchName ?? "";
-        matchName.textContent = rawMatchName;
-        const hasLineBreak = /\r?\n/.test(rawMatchName);
-        matchMetaContent.classList.toggle("has-linebreak", hasLineBreak);
-        const matchLogoSrc = settings.matchLogo || "";
-        if (matchLogoSrc) {
-          matchLogo.src = encodeURI(matchLogoSrc);
-          matchLogo.style.display = "block";
-          matchMetaContent.classList.add("with-logo");
-          if (rawMatchName.length < 1) {
-            matchLogo.style.height = "100px";
-            matchLogo.style.width = "auto";
-          }
-        } else {
-          matchLogo.removeAttribute("src");
-          matchLogo.style.display = "none";
-          matchMetaContent.classList.remove("with-logo");
-        }
-        fitMatchNameText();
+        topbar?.update({
+          teams: {
+            team1: { name: team1.name || "Team 1", logo: team1.logo || "" },
+            team2: { name: team2.name || "Team 2", logo: team2.logo || "" }
+          },
+          score,
+          settings,
+          history: state.history || [],
+          currentMatchIndex: state.state?.currentMatchIndex || 1,
+          showPickIndicator: false
+        });
 
         const game = state.state || {};
         const assets = state.assets || { heroes: [], maps: [] };
@@ -526,7 +438,7 @@
       async function init() {
         setLoading(true, "LOADING...");
         try {
-          await loadSharedTopbar();
+            topbar = await SharedTopbar.mount(sharedTopbarSlot);
           const snapshot = await loadInitialSnapshot();
           render(snapshot);
           setLoading(false);
@@ -537,7 +449,7 @@
         }
       }
 
-      window.addEventListener("resize", fitMatchNameText);
+      window.addEventListener("resize", () => topbar?.fitMatchNameText());
       init();
     </script>
   </body>
