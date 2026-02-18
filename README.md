@@ -124,6 +124,11 @@ npm start
 - 인게임 오버레이: http://localhost:3000/in-game-overlay
 - 게임 히스토리: http://localhost:3000/game-history
 
+### 영웅 영상 에셋 안내
+
+- `video/hero` 대용량 영상 파일은 저장소에 직접 포함하지 않을 수 있습니다.
+- 영웅 영상 에셋은 GitHub Releases의 `v1.0.0` 릴리즈를 참고해 다운로드/적용해주세요.
+
 ---
 
 ## 6) 폴더 구조(핵심)
