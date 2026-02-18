@@ -5,7 +5,7 @@ const WebSocket = require("ws");
 const { readJson, writeJsonAtomic, ensureDir } = require("./src/storage");
 const { scanMaps, scanHeroes } = require("./src/assets");
 const { validateMapPick, validateBans, getSidePickOwner } = require("./src/rules");
-const { extractDominantColor } = require("./dominant-color");
+const { extractDominantColor } = require("./src/dominant-color");
 
 const ROOT_DIR = __dirname;
 const DATA_DIR = path.join(ROOT_DIR, "data");
