@@ -1,10 +1,11 @@
+const VALID_MAP_MODES = ["control", "hybrid", "flashpoint", "push", "escort"];
+
 function validateMapPick({ enableMapPick, mode, mapId, settings, historyGames }) {
   if (!enableMapPick) {
     return { ok: true };
   }
 
-  const validModes = ["control", "hybrid", "flashpoint", "push", "escort"];
-  if (!mode || !validModes.includes(mode)) {
+  if (!mode || !VALID_MAP_MODES.includes(mode)) {
     return { ok: false, code: "INVALID_MODE", message: "맵 모드가 올바르지 않습니다." };
   }
 
@@ -32,7 +33,7 @@ function validateMapPick({ enableMapPick, mode, mapId, settings, historyGames })
     };
   }
 
-  const availableModes = validModes.filter((item) => (mapPoolByMode[item] || []).length > 0);
+  const availableModes = VALID_MAP_MODES.filter((item) => (mapPoolByMode[item] || []).length > 0);
   if (availableModes.length > 0) {
     const cycleSet = new Set();
     historyGames.forEach((game) => {
@@ -53,6 +54,33 @@ function validateMapPick({ enableMapPick, mode, mapId, settings, historyGames })
   }
 
   return { ok: true };
+}
+
+function getSelectableMapIds({ enableMapPick, settings, historyGames }) {
+  if (!enableMapPick) {
+    return [];
+  }
+
+  const mapPoolByMode = settings?.mapPool || {};
+  const selectable = [];
+
+  VALID_MAP_MODES.forEach((mode) => {
+    const pool = Array.isArray(mapPoolByMode[mode]) ? mapPoolByMode[mode] : [];
+    pool.forEach((mapId) => {
+      const result = validateMapPick({
+        enableMapPick,
+        mode,
+        mapId,
+        settings,
+        historyGames
+      });
+      if (result.ok) {
+        selectable.push(mapId);
+      }
+    });
+  });
+
+  return selectable;
 }
 
 function validateBans({ enableHeroBan, banA, banB, heroesById, historyGames }) {
@@ -126,6 +154,7 @@ function getSidePickOwner({ gameIndex, initialLeadTeam, historyGames }) {
 
 module.exports = {
   validateMapPick,
+  getSelectableMapIds,
   validateBans,
   getSidePickOwner
 };

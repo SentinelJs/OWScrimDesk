@@ -92,6 +92,12 @@
       grid-template-rows: 1fr;
     }
 
+    @supports (width: 1cqw) {
+      .slot-card {
+        container-type: inline-size;
+      }
+    }
+
     .slot-card.pending {
       background: #2a2a2a;
     }
@@ -117,7 +123,12 @@
       content: "";
       position: absolute;
       inset: 0;
-      background: linear-gradient(to top, rgba(0, 0, 0, 0.82) 0%, rgba(0, 0, 0, 0.70) 46%, rgba(0, 0, 0, 0.0) 100%);
+      background: linear-gradient(
+        to top,
+        var(--played-gradient-strong, rgba(0, 0, 0, 0.82)) 0%,
+        var(--played-gradient-mid, rgba(0, 0, 0, 0.70)) 46%,
+        rgba(0, 0, 0, 0.0) 100%
+      );
     }
 
     /* .slot-card.current .slot-bg::after {
@@ -269,6 +280,27 @@
       opacity: 0.95;
     }
 
+    @supports (width: 1cqw) {
+      .slot-card .ban-cell-group {
+        column-gap: clamp(8px, 9cqw, 40px);
+      }
+
+      .slot-card .ban-label,
+      .slot-card .ban-media {
+        width: clamp(32px, 18cqw, 62px);
+      }
+
+      .slot-card .ban-label {
+        height: clamp(11px, 6.5cqw, 18px);
+        font-size: clamp(8px, 3.6cqw, 12px);
+      }
+
+      .slot-card .mode-icon {
+        width: clamp(18px, 13cqw, 38px);
+        height: clamp(18px, 13cqw, 38px);
+      }
+    }
+
     .mode-cell {
       align-content: center;
       justify-items: center;
@@ -373,7 +405,7 @@
       const match = raw.match(/\d+/);
       const bo = match ? Number(match[0]) : 3;
       const bestOf = Number.isFinite(bo) && bo > 0 ? bo : 3;
-      return Math.max(1, bestOf * 2 - 1);
+      return Math.max(1, bestOf);
     }
 
     function createHeroCell(heroById, heroId) {
@@ -404,6 +436,48 @@
       media.appendChild(placeholder);
       wrapper.appendChild(media);
       return wrapper;
+    }
+
+    function normalizeColorToRgb(color) {
+      if (typeof color !== "string") return null;
+      const raw = color.trim();
+      if (!raw) return null;
+
+      const hexMatch = raw.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+      if (hexMatch) {
+        let hex = hexMatch[1];
+        if (hex.length === 3) {
+          hex = hex.split("").map((ch) => ch + ch).join("");
+        }
+        const intVal = Number.parseInt(hex, 16);
+        return {
+          r: (intVal >> 16) & 255,
+          g: (intVal >> 8) & 255,
+          b: intVal & 255
+        };
+      }
+
+      const rgbMatch = raw.match(/^rgba?\(([^)]+)\)$/i);
+      if (!rgbMatch) return null;
+
+      const parts = rgbMatch[1]
+        .split(",")
+        .map((part) => Number.parseFloat(part.trim()))
+        .slice(0, 3);
+
+      if (parts.length !== 3 || parts.some((v) => !Number.isFinite(v))) return null;
+
+      return {
+        r: Math.max(0, Math.min(255, Math.round(parts[0]))),
+        g: Math.max(0, Math.min(255, Math.round(parts[1]))),
+        b: Math.max(0, Math.min(255, Math.round(parts[2])))
+      };
+    }
+
+    function colorToRgba(color, alpha) {
+      const rgb = normalizeColorToRgb(color);
+      if (!rgb) return `rgba(0, 0, 0, ${alpha})`;
+      return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
     }
 
     function render(payload) {
@@ -458,6 +532,7 @@
         let mapMode = "";
         let mapImage = "";
         let bans = { team1: "", team2: "" };
+        let playedWinnerTeam = null;
 
         if (played) {
           card.classList.add("played");
@@ -466,6 +541,14 @@
           mapMode = played.mapMode || (mapData ? mapData.mode : "");
           mapImage = mapData?.image || "";
           bans = played.bans || { team1: "", team2: "" };
+
+          if (played.winner === "team1" || played.winner === "team2") {
+            playedWinnerTeam = played.winner === "team2" ? safeTeams.team2 : safeTeams.team1;
+          }
+
+          const teamColor = playedWinnerTeam?.color || "";
+          card.style.setProperty("--played-gradient-strong", colorToRgba(teamColor, 0.78));
+          card.style.setProperty("--played-gradient-mid", colorToRgba(teamColor, 0.52));
         } else if (isCurrent) {
           card.classList.add("current");
           mapData = mapsById.get(state.currentMapId) || null;
@@ -500,7 +583,7 @@
           winnerArea.className = "winner-area";
 
           if (played && played.winner) {
-            const team = played.winner === "team2" ? safeTeams.team2 : safeTeams.team1;
+            const team = playedWinnerTeam || (played.winner === "team2" ? safeTeams.team2 : safeTeams.team1);
             const badge = document.createElement("div");
             badge.className = "winner-badge";
 

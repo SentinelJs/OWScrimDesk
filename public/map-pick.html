@@ -391,6 +391,7 @@
       const teams = payload.teams || {};
       const state = payload.state || {};
       const history = payload.history || [];
+      const selectableMapIds = Array.isArray(payload.selectableMapIds) ? payload.selectableMapIds : null;
       const assets = payload.assets || { maps: [] };
       const score = payload.score || { team1: 0, team2: 0 };
 
@@ -444,6 +445,7 @@
         const hasSelecting = currentMode === mode && !!currentSelectedMapId;
         modeHasSelectedMap[mode] = hasWin || hasSelecting;
       });
+      const selectableMapIdSet = selectableMapIds ? new Set(selectableMapIds) : null;
 
       const fragment = document.createDocumentFragment();
       activeModes.forEach((mode) => {
@@ -469,7 +471,17 @@
         list.style.gridTemplateRows = `repeat(${pool.length}, 1fr)`;
 
         pool.forEach((map) => {
-          const status = getMapStatus(map.id, mode, winMapSet, currentSelectedMapId, currentMode, modeHasSelectedMap, selectedBy, safeTeams);
+          const status = getMapStatus(
+            map.id,
+            mode,
+            winMapSet,
+            currentSelectedMapId,
+            currentMode,
+            modeHasSelectedMap,
+            selectedBy,
+            safeTeams,
+            selectableMapIdSet
+          );
           const card = document.createElement("div");
           card.className = `map-card state-${status.type}`;
 
@@ -596,7 +608,7 @@
       return prev.winner === "team1" ? "team2" : "team1";
     }
 
-    function getMapStatus(mapId, mode, winMapSet, currentSelectedMapId, currentMode, modeHasSelectedMap, selectedBy, teams) {
+    function getMapStatus(mapId, mode, winMapSet, currentSelectedMapId, currentMode, modeHasSelectedMap, selectedBy, teams, selectableMapIdSet) {
       if (winMapSet.has(mapId)) {
         const winner = winMapSet.get(mapId);
         const team = winner === "team2" ? teams.team2 : teams.team1;
@@ -605,6 +617,9 @@
       if (mapId === currentSelectedMapId) {
         const team = selectedBy === "team2" ? teams.team2 : teams.team1;
         return { type: "selecting", team };
+      }
+      if (selectableMapIdSet) {
+        return selectableMapIdSet.has(mapId) ? { type: "unselected" } : { type: "disabled" };
       }
       if (modeHasSelectedMap[mode]) {
         return { type: "disabled" };

@@ -5,7 +5,7 @@ const express = require("express");
 const WebSocket = require("ws");
 const { readJson, writeJsonAtomic, ensureDir } = require("./src/storage");
 const { scanMaps, scanHeroes } = require("./src/assets");
-const { validateMapPick, validateBans, getSidePickOwner } = require("./src/rules");
+const { validateMapPick, getSelectableMapIds, validateBans, getSidePickOwner } = require("./src/rules");
 const { extractDominantColor } = require("./src/dominant-color");
 
 const ROOT_DIR = __dirname;
@@ -228,12 +228,18 @@ function buildBroadcastState({ settings, teams, state, history }) {
   refreshAssets();
   applyBanPriorityMeta({ settings, state, history });
   applyLayoutSwapMeta({ state });
+  const selectableMapIds = getSelectableMapIds({
+    enableMapPick: settings.enableMapPick,
+    settings,
+    historyGames: history
+  });
   return {
     settings,
     teams,
     state,
     history,
     score: computeScore(history),
+    selectableMapIds,
     assets
   };
 }
