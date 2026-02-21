@@ -439,9 +439,13 @@ button:hover {
   transform: translateY(0);
 }
 
-@media (max-width: 720px) {
+@media (max-width: 1024px) {
   .topbar {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .grid.two {
+    grid-template-columns: 1fr;
   }
 }
