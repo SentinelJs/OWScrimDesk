@@ -4,11 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>OW2 내전 관리</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
   <link rel="stylesheet" href="/css/admin.css" />
 </head>
 <body>
   <header class="topbar">
-    <div class="brand">OW2 내전 관리</div>
+    <div class="brand">OW2 <span>내전 관리</span></div>
     <nav class="tabs" id="tabs">
       <button data-tab="team" class="active">Team</button>
       <button data-tab="ingame">In-Game</button>
@@ -21,8 +23,13 @@
 
   <main class="container">
     <section id="tab-team" class="tab active">
-      <h2>Team</h2>
-      <button class="secondary" id="refreshTeam">최신 정보 불러오기</button>
+      <div class="section-header">
+        <h2>Team</h2>
+        <span class="section-sub">팀 이름 · 색상 · 로고를 설정합니다</span>
+      </div>
+      <div class="tab-toolbar">
+        <button class="secondary" id="refreshTeam">최신 정보 불러오기</button>
+      </div>
       <div class="grid two">
         <div class="card">
           <h3>Team 1</h3>
@@ -35,7 +42,7 @@
           </label>
           <label>로고 업로드<input id="team1-logo-file" type="file" accept="image/*" /></label>
           <div class="logo-actions">
-            <button class="secondary" id="team1-logo-clear">로고 제거</button>
+            <button class="danger" id="team1-logo-clear">로고 제거</button>
             <button class="secondary" id="team1-logo-color">로고 색 추출</button>
           </div>
           <div class="logo-preview" id="team1-logo-preview"></div>
@@ -51,18 +58,25 @@
           </label>
           <label>로고 업로드<input id="team2-logo-file" type="file" accept="image/*" /></label>
           <div class="logo-actions">
-            <button class="secondary" id="team2-logo-clear">로고 제거</button>
+            <button class="danger" id="team2-logo-clear">로고 제거</button>
             <button class="secondary" id="team2-logo-color">로고 색 추출</button>
           </div>
           <div class="logo-preview" id="team2-logo-preview"></div>
         </div>
       </div>
-      <button class="primary" id="saveTeams">저장 후 반영하기</button>
+      <div class="actions-row">
+        <button class="primary" id="saveTeams">저장 후 반영하기</button>
+      </div>
     </section>
 
     <section id="tab-ingame" class="tab">
-      <h2>In-Game</h2>
-      <button class="secondary" id="refreshInGame">최신 정보 불러오기</button>
+      <div class="section-header">
+        <h2>In-Game</h2>
+        <span class="section-sub">현재 진행 중인 경기 상태를 관리합니다</span>
+      </div>
+      <div class="tab-toolbar">
+        <button class="secondary" id="refreshInGame">최신 정보 불러오기</button>
+      </div>
       <div class="info-bar" id="sideOwnerBar"></div>
       <div class="card" id="layoutSwapCard">
         <div class="layout-row">
@@ -118,7 +132,7 @@
             <div class="autocomplete" id="ban-team1-autocomplete"></div>
             <div class="actions-row">
               <button class="secondary" id="applyBanTeam1">Team1 밴 적용</button>
-              <button class="secondary" id="resetBanTeam1">Team1 밴 초기화</button>
+              <button class="danger" id="resetBanTeam1">Team1 밴 초기화</button>
             </div>
             <label>Team2 밴
               <div class="search-input">
@@ -129,18 +143,25 @@
             <div class="autocomplete" id="ban-team2-autocomplete"></div>
             <div class="actions-row">
               <button class="secondary" id="applyBanTeam2">Team2 밴 적용</button>
-              <button class="secondary" id="resetBanTeam2">Team2 밴 초기화</button>
+              <button class="danger" id="resetBanTeam2">Team2 밴 초기화</button>
             </div>
           </div>
         </div>
       </div>
-      <button class="secondary" id="resetInGameAll">전체 초기화</button>
-      <button class="secondary" id="finishMatch">경기 내용 저장 후 마무리하기</button>
+      <div class="actions-row">
+        <button class="primary" id="finishMatch">경기 내용 저장 후 마무리하기</button>
+        <button class="danger" id="resetInGameAll">전체 초기화</button>
+      </div>
     </section>
 
     <section id="tab-history" class="tab">
-      <h2>History</h2>
-      <button class="secondary" id="refreshHistory">최신 정보 불러오기</button>
+      <div class="section-header">
+        <h2>History</h2>
+        <span class="section-sub">경기 결과 기록을 확인하고 수정합니다</span>
+      </div>
+      <div class="tab-toolbar">
+        <button class="secondary" id="refreshHistory">최신 정보 불러오기</button>
+      </div>
       <div class="card">
         <table class="history-table" id="historyTable">
           <thead>
@@ -156,18 +177,25 @@
           <tbody></tbody>
         </table>
       </div>
-      <button class="primary" id="saveHistory">저장</button>
+      <div class="actions-row" style="margin-top:12px">
+        <button class="primary" id="saveHistory">저장</button>
+      </div>
     </section>
 
     <section id="tab-match" class="tab">
-      <h2>Match Info</h2>
-      <button class="secondary" id="refreshMatch">최신 정보 불러오기</button>
+      <div class="section-header">
+        <h2>Match Info</h2>
+        <span class="section-sub">경기 설정 및 맵 풀을 구성합니다</span>
+      </div>
+      <div class="tab-toolbar">
+        <button class="secondary" id="refreshMatch">최신 정보 불러오기</button>
+      </div>
       <div class="grid two">
         <div class="card">
           <label>경기 이름<textarea id="match-name" rows="2" autocomplete="off"></textarea></label>
           <label>경기 로고 업로드<input id="match-logo-file" type="file" accept="image/*" /></label>
           <div class="logo-actions">
-            <button class="secondary" id="match-logo-clear">로고 제거</button>
+            <button class="danger" id="match-logo-clear">로고 제거</button>
           </div>
           <div class="logo-preview" id="match-logo-preview"></div>
           <label>경기 세트 수
@@ -196,7 +224,7 @@
       </div>
       <div class="actions-row">
         <button class="primary" id="saveMatch">저장</button>
-        <button class="secondary" id="resetAll">전체 초기화</button>
+        <button class="danger" id="resetAll">전체 초기화</button>
       </div>
     </section>
   </main>
