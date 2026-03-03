@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Match Start Overlay</title>
+  <style>
+    :root {
+      --canvas-width: 1920px;
+      --canvas-height: 1080px;
+      --card-width: 885px;
+      --card-height: 210px;
+      --vs-column-width: 190px;
+      --card-bg: rgba(16, 16, 20, 0.95);
+      --card-text: #ffffff;
+      --card-subtext: #dcb043;
+      --card-border: rgba(220, 176, 67, 0.3);
+      --divider-color: rgba(220, 176, 67, 0.2);
+      --vs-bg: rgba(220, 176, 67, 0.15);
+      --logo-size: 74px;
+      --name-size: 72px;
+      --name-min-size: 20px;
+      --name-base-weight: 520;
+      --name-min-weight: 400;
+      --name-letter-spacing: 0.03em;
+      --name-min-letter-spacing: -0.05em;
+      --name-fit-safety: 10px;
+      --name-inline-padding: 6px;
+      --vs-size: 84px;
+      --meta-size: 44px;
+      --fade-in-duration: 450ms;
+      --intro-duration: 1500ms;
+      --curtain-delay: 320ms;
+      --outro-duration: 700ms;
+      --hold-duration: 3000ms;
+      --team-name-nudge-y: 0px;
+      --match-start-team-name-no-logo-offset: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    @font-face {
+      font-family: "Koverwatch";
+      src: url("/fonts/koverwatch.otf") format("opentype");
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+      font-family: "Koverwatch", "Pretendard", "Noto Sans KR", system-ui, sans-serif;
+    }
+
+    .stage {
+      width: 100vw;
+      height: 100vh;
+      display: grid;
+      place-items: center;
+      background: transparent;
+    }
+
+    .match-start-card {
+      width: min(var(--card-width), calc(100vw - 40px));
+      height: min(var(--card-height), calc(100vh - 40px));
+      background: var(--card-bg);
+      color: var(--card-text);
+      border-radius: 6px;
+      border: 2px solid var(--card-border);
+      box-shadow: 0 16px 38px rgba(0, 0, 0, 0.5), 0 0 20px rgba(220, 176, 67, 0.1);
+      display: grid;
+      grid-template-rows: 52px 1fr;
+      position: relative;
+      overflow: hidden;
+      opacity: 0;
+      transform: none;
+      clip-path: inset(0 50% 0 50%);
+      --current-fade-duration: var(--fade-in-duration);
+      transition: opacity var(--current-fade-duration) ease;
+    }
+
+    .match-start-card.ready {
+      opacity: 1;
+      --current-fade-duration: var(--fade-in-duration);
+    }
+
+    .meta-row {
+      display: grid;
+      place-items: center;
+      color: var(--card-subtext);
+      font-size: clamp(20px, 1.55vw, var(--meta-size));
+      letter-spacing: 0.04em;
+      line-height: 1;
+      text-transform: uppercase;
+      z-index: 2;
+    }
+
+    .main-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) var(--vs-column-width) minmax(0, 1fr);
+      align-items: center;
+      height: 100%;
+      padding: 0 30px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .main-row::before,
+    .main-row::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      height: 75%;
+      transform: translateY(-50%);
+      width: 2px;
+      background: var(--divider-color);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .main-row::before {
+      left: calc(50% - (var(--vs-column-width) / 2));
+    }
+
+    .main-row::after {
+      right: calc(50% - (var(--vs-column-width) / 2));
+    }
+
+    .team {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      width: 100%;
+      z-index: 2;
+      opacity: 1;
+    }
+
+    .team.left {
+      justify-content: flex-start;
+      padding-right: 20px;
+    }
+
+    .team.right {
+      justify-content: flex-end;
+      padding-left: 20px;
+    }
+
+    .team-inline {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      min-width: 0;
+      flex: 1 1 auto;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .team.left .team-inline {
+      justify-content: flex-start;
+    }
+
+    .team.right .team-inline {
+      justify-content: flex-end;
+    }
+
+    .team-logo {
+      width: var(--logo-size);
+      height: var(--logo-size);
+      object-fit: contain;
+      flex-shrink: 0;
+      justify-self: center;
+    }
+
+    .team-logo.hidden {
+      display: none;
+    }
+
+    .team-name {
+      font-size: var(--name-size);
+      font-weight: var(--name-base-weight);
+      line-height: 1;
+      letter-spacing: var(--name-letter-spacing);
+      text-transform: uppercase;
+      white-space: nowrap;
+      transform-origin: center left;
+      transition: transform 0.2s ease;
+      padding-inline: var(--name-inline-padding);
+    }
+
+    .team.left .team-name {
+      text-align: left;
+      transform-origin: center left;
+    }
+
+    .team.right .team-name {
+      text-align: right;
+      transform-origin: center right;
+    }
+
+    .team.left.no-logo .team-name {
+      margin-left: var(--match-start-team-name-no-logo-offset);
+    }
+
+    .team.right.no-logo .team-name {
+      margin-right: var(--match-start-team-name-no-logo-offset);
+    }
+
+    .vs {
+      text-align: center;
+      font-size: clamp(54px, 3.9vw, var(--vs-size));
+      line-height: 1;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      z-index: 2;
+      opacity: 1;
+      border-radius: 4px;
+      padding: 8px 12px;
+      color: var(--card-subtext);
+      font-weight: 700;
+    }
+
+    .match-start-card.play-intro {
+      animation: revealFromCenter var(--intro-duration) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    }
+
+    .match-start-card.fade-out {
+      --current-fade-duration: var(--outro-duration);
+      opacity: 0;
+    }
+
+    @keyframes revealFromCenter {
+      from {
+        clip-path: inset(0 50% 0 50%);
+      }
+      to {
+        clip-path: inset(0 0 0 0);
+      }
+    }
+
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <section class="match-start-card" id="matchStartCard" aria-label="match-start">
+      <div class="meta-row" id="metaRow">SET 1</div>
+      <div class="main-row">
+        <div class="team left" id="team1Block">
+          <img class="team-logo" id="team1Logo" alt="Team 1 Logo" />
+          <div class="team-inline">
+            <div class="team-name" id="team1Name">TEAM 1</div>
+          </div>
+        </div>
+        <div class="vs">VS</div>
+        <div class="team right" id="team2Block">
+          <div class="team-inline">
+            <div class="team-name" id="team2Name">TEAM 2</div>
+          </div>
+          <img class="team-logo" id="team2Logo" alt="Team 2 Logo" />
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const elements = {
+      card: document.getElementById("matchStartCard"),
+      meta: document.getElementById("metaRow"),
+      team1Block: document.getElementById("team1Block"),
+      team2Block: document.getElementById("team2Block"),
+      team1Name: document.getElementById("team1Name"),
+      team2Name: document.getElementById("team2Name"),
+      team1Logo: document.getElementById("team1Logo"),
+      team2Logo: document.getElementById("team2Logo")
+    };
+
+    const teamBindings = [
+      {
+        key: "team1",
+        fallbackName: "Team 1",
+        nameEl: elements.team1Name,
+        logoEl: elements.team1Logo,
+        blockEl: elements.team1Block
+      },
+      {
+        key: "team2",
+        fallbackName: "Team 2",
+        nameEl: elements.team2Name,
+        logoEl: elements.team2Logo,
+        blockEl: elements.team2Block
+      }
+    ];
+
+    const urlParams = new URLSearchParams(location.search);
+    const DEV_DISABLE_ANIMATION = urlParams.get("dev") === "1" || urlParams.get("noanim") === "1";
+    let hasRenderedInitialUi = false;
+    let introStarted = false;
+
+    function readDurationMs(variableName, fallbackMs) {
+      const rawValue = getComputedStyle(document.documentElement).getPropertyValue(variableName).trim();
+      if (!rawValue) return fallbackMs;
+      const parsed = parseFloat(rawValue);
+      if (!Number.isFinite(parsed)) return fallbackMs;
+      return rawValue.includes("ms") ? parsed : parsed * 1000;
+    }
+
+    function waitForImageReady(img) {
+      if (!img?.src || img.classList.contains("hidden") || img.complete) {
+        return Promise.resolve();
+      }
+      return new Promise((resolve) => {
+        img.addEventListener("load", resolve, { once: true });
+        img.addEventListener("error", resolve, { once: true });
+      });
+    }
+
+    function fitTeamName(nameEl, containerEl) {
+      nameEl.style.transform = 'none';
+      
+      requestAnimationFrame(() => {
+        const containerWidth = containerEl.clientWidth;
+        const textWidth = nameEl.scrollWidth;
+        
+        if (textWidth > containerWidth) {
+          const scale = containerWidth / textWidth;
+          nameEl.style.transform = `scale(${scale})`;
+        }
+      });
+    }
+
+    function runIntroSequence() {
+      const card = elements.card;
+      card.classList.add("ready");
+      
+      if (DEV_DISABLE_ANIMATION) {
+        card.classList.remove("play-intro", "fade-out");
+        card.style.clipPath = "inset(0 0 0 0)";
+        return;
+      }
+
+      card.classList.remove("play-intro", "fade-out");
+      void card.offsetWidth;
+
+      const fadeInMs = readDurationMs("--fade-in-duration", 450);
+      const introMs = readDurationMs("--intro-duration", 900);
+      const curtainDelayMs = readDurationMs("--curtain-delay", 320);
+      const holdMs = readDurationMs("--hold-duration", 5000);
+
+      setTimeout(() => card.classList.add("play-intro"), curtainDelayMs);
+      setTimeout(() => card.classList.add("fade-out"), Math.max(fadeInMs, curtainDelayMs + introMs) + holdMs);
+    }
+
+    function setLogo(img, src, teamBlock) {
+      if (!src) {
+        img.removeAttribute("src");
+        img.classList.add("hidden");
+        teamBlock?.classList.add("no-logo");
+        return;
+      }
+      img.src = encodeURI(src);
+      img.classList.remove("hidden");
+      teamBlock?.classList.remove("no-logo");
+      return waitForImageReady(img);
+    }
+
+    async function render(payload) {
+      if (!payload) return;
+      
+      const setNumber = Number(payload.state?.currentMatchIndex) || 1;
+      elements.meta.textContent = `SET ${setNumber}`;
+
+      const teams = payload.teams || {};
+      const logoPromises = [];
+
+      for (const team of teamBindings) {
+        const source = teams[team.key] || {};
+        team.nameEl.textContent = source.name || team.fallbackName;
+        const logoPromise = setLogo(team.logoEl, source.logo, team.blockEl);
+        if (logoPromise) logoPromises.push(logoPromise);
+      }
+
+      if (logoPromises.length) await Promise.all(logoPromises);
+      
+      if (document.fonts?.ready) await document.fonts.ready;
+      requestAnimationFrame(() => {
+        teamBindings.forEach(team => {
+          fitTeamName(team.nameEl, team.nameEl.parentElement);
+        });
+      });
+    }
+
+    async function handleOverlayUpdate(payload) {
+      await render(payload);
+      
+      if (!hasRenderedInitialUi) {
+        hasRenderedInitialUi = true;
+        introStarted = true;
+        runIntroSequence();
+      }
+    }
+
+    function openSocket() {
+      const ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}`);
+
+      ws.onopen = () => ws.send(JSON.stringify({ type: "overlay:hello" }));
+      
+      ws.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          if (message.type === "overlay:update") handleOverlayUpdate(message.payload);
+        } catch {}
+      };
+
+      ws.onclose = () => setTimeout(openSocket, 1500);
+    }
+
+    openSocket();
+  </script>
+</body>
+</html>

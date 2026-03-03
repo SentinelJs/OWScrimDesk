@@ -201,6 +201,10 @@ app.get("/game-history", (req, res) => {
   res.sendFile(path.join(ROOT_DIR, "public", "game-history.html"));
 });
 
+app.get("/match-start", (req, res) => {
+  res.sendFile(path.join(ROOT_DIR, "public", "match-start.html"));
+});
+
 let assets = {
   maps: scanMaps(ROOT_DIR),
   heroes: scanHeroes(ROOT_DIR)
