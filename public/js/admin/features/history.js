@@ -76,6 +76,8 @@ export function createHistoryModule(ctx) {
           sidePickOwner: prev?.sidePickOwner || "",
           sidePickReason: prev?.sidePickReason || "",
           attackTeam: prev?.attackTeam || "",
+          overlayTeamSwap: !!prev?.overlayTeamSwap,
+          overlayRoleSwap: !!prev?.overlayRoleSwap,
           layoutSwap: prev?.layoutSwap || false,
           banChoiceOwner: prev?.banChoiceOwner || "",
           banOrder: prev?.banOrder || "",

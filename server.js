@@ -64,6 +64,8 @@ const DEFAULT_STATE = {
   sidePickOwner: "",
   sidePickReason: "",
   attackTeam: "",
+  overlayTeamSwap: false,
+  overlayRoleSwap: false,
   layoutSwap: false,
   layoutSwapAuto: true,
   banChoiceOwnerAuto: "",
@@ -140,21 +142,25 @@ function applyBanPriorityMeta({ settings, state, history }) {
 }
 
 function applyLayoutSwapMeta({ state }) {
-  if (state.sidePickOwner && state.side) {
-    if (state.side === "attack") {
-      state.attackTeam = state.sidePickOwner;
-    } else if (state.side === "defense") {
-      state.attackTeam = state.sidePickOwner === "team1" ? "team2" : "team1";
-    }
+  if (state.sidePickOwner && state.side === "attack") {
+    state.attackTeam = state.sidePickOwner;
+  } else if (state.sidePickOwner && state.side === "defense") {
+    state.attackTeam = state.sidePickOwner === "team1" ? "team2" : "team1";
+  } else {
+    state.attackTeam = "";
   }
-  if (state.layoutSwapAuto === false) {
-    return;
-  }
-  if (state.attackTeam === "team1") {
-    state.layoutSwap = true;
-  } else if (state.attackTeam === "team2") {
-    state.layoutSwap = false;
-  }
+
+  state.overlayTeamSwap = !!state.overlayTeamSwap;
+  state.overlayRoleSwap = !!state.overlayRoleSwap;
+
+  const hasAttack = state.attackTeam === "team1" || state.attackTeam === "team2";
+  const standardLeftTeamId = hasAttack
+    ? (state.attackTeam === "team1" ? "team2" : "team1")
+    : "team1";
+  const currentLeftTeamId = state.overlayTeamSwap
+    ? (standardLeftTeamId === "team1" ? "team2" : "team1")
+    : standardLeftTeamId;
+  state.layoutSwap = currentLeftTeamId === "team2";
 }
 
 function loadAll() {

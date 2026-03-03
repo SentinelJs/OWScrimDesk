@@ -78,12 +78,6 @@
         <button class="secondary" id="refreshInGame">최신 정보 불러오기</button>
       </div>
       <div class="info-bar" id="sideOwnerBar"></div>
-      <div class="card" id="layoutSwapCard">
-        <div class="layout-row">
-          <label class="inline"><input type="checkbox" id="layout-auto" /> 자동 반전 사용</label>
-          <label class="inline"><input type="checkbox" id="layout-swap" /> 오버레이 팀 위치 반전</label>
-        </div>
-      </div>
       <div class="grid two">
         <div class="card">
           <h3>현재 맵</h3>
@@ -103,6 +97,20 @@
             <div class="side-title">공격/수비 선택</div>
             <label class="side-option"><input type="radio" name="side" value="attack" /> 공격</label>
             <label class="side-option"><input type="radio" name="side" value="defense" /> 수비</label>
+            <div id="swapManager" class="swap-manager">
+              <div class="swap-block">
+                <div class="swap-label">권장 배치</div>
+                <div class="swap-summary" id="swap-standard-summary">-</div>
+              </div>
+              <div class="swap-block">
+                <div class="swap-label">현재 적용 배치</div>
+                <div class="swap-summary" id="swap-current-summary">-</div>
+                <div class="swap-controls">
+                  <button type="button" class="secondary" id="swap-team-btn">좌우 팀 교체</button>
+                  <button type="button" class="secondary" id="swap-role-btn">좌우 공수 아이콘 교체</button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         <div class="card">

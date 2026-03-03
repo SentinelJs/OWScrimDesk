@@ -96,18 +96,101 @@ export function createInGameModule(ctx) {
     return selected ? selected.value : "";
   }
 
-  function computeLayoutSwapForAttackRight(attackTeam) {
-    if (attackTeam === "team1") return true;
-    if (attackTeam === "team2") return false;
-    return state.current.layoutSwap;
+  function ensureOverlaySwapState() {
+    if (typeof state.current.overlayTeamSwap !== "boolean") {
+      state.current.overlayTeamSwap = false;
+    }
+    if (typeof state.current.overlayRoleSwap !== "boolean") {
+      state.current.overlayRoleSwap = false;
+    }
   }
 
-  function renderLayoutSwap() {
-    const autoToggle = document.getElementById("layout-auto");
-    const swapToggle = document.getElementById("layout-swap");
-    if (!autoToggle || !swapToggle) return;
-    autoToggle.checked = state.current.layoutSwapAuto !== false;
-    swapToggle.checked = !!state.current.layoutSwap;
+  function computeAttackTeamFromCurrentSelection() {
+    if (!state.current.sidePickOwner || !state.current.side) return "";
+    if (state.current.side === "attack") return state.current.sidePickOwner;
+    if (state.current.side === "defense") {
+      return state.current.sidePickOwner === "team1" ? "team2" : "team1";
+    }
+    return "";
+  }
+
+  function computeStandardOverlayView() {
+    const selectedAttackTeam = computeAttackTeamFromCurrentSelection();
+    const attackTeam = selectedAttackTeam || (state.current.side ? state.current.attackTeam : "");
+    const hasAttack = attackTeam === "team1" || attackTeam === "team2";
+    const leftTeamId = hasAttack
+      ? (attackTeam === "team1" ? "team2" : "team1")
+      : "team1";
+    const rightTeamId = hasAttack
+      ? attackTeam
+      : "team2";
+    return {
+      hasAttack,
+      attackTeam,
+      leftTeamId,
+      rightTeamId,
+      leftRole: hasAttack ? "defense" : "",
+      rightRole: hasAttack ? "attack" : ""
+    };
+  }
+
+  function computeCurrentOverlayView() {
+    ensureOverlaySwapState();
+    const standard = computeStandardOverlayView();
+    const teamSwapped = !!state.current.overlayTeamSwap;
+    const roleSwapped = !!state.current.overlayRoleSwap;
+    return {
+      ...standard,
+      leftTeamId: teamSwapped ? standard.rightTeamId : standard.leftTeamId,
+      rightTeamId: teamSwapped ? standard.leftTeamId : standard.rightTeamId,
+      leftRole: roleSwapped ? standard.rightRole : standard.leftRole,
+      rightRole: roleSwapped ? standard.leftRole : standard.rightRole
+    };
+  }
+
+  function teamName(teamId) {
+    return teamId === "team2" ? state.teams.team2.name : state.teams.team1.name;
+  }
+
+  function formatOverlaySummary(view) {
+    if (!view.hasAttack) {
+      return "왼쪽 - / 오른쪽 - (공/수 선택 시 자동 표시)";
+    }
+    const leftRoleLabel = view.leftRole === "attack" ? "공격" : "수비";
+    const rightRoleLabel = view.rightRole === "attack" ? "공격" : "수비";
+    return `왼쪽 ${leftRoleLabel} ${teamName(view.leftTeamId)} · 오른쪽 ${rightRoleLabel} ${teamName(view.rightTeamId)}`;
+  }
+
+  function renderSwapManager() {
+    ensureOverlaySwapState();
+    const standardSummary = document.getElementById("swap-standard-summary");
+    const currentSummary = document.getElementById("swap-current-summary");
+    const teamSwapBtn = document.getElementById("swap-team-btn");
+    const roleSwapBtn = document.getElementById("swap-role-btn");
+    const sideArea = document.getElementById("sideArea");
+    if (!standardSummary || !currentSummary || !teamSwapBtn || !roleSwapBtn || !sideArea) return;
+    const isVisible = sideArea.style.display !== "none";
+    if (!isVisible) return;
+
+    const standard = computeStandardOverlayView();
+    const current = computeCurrentOverlayView();
+
+    standardSummary.textContent = formatOverlaySummary(standard);
+    currentSummary.textContent = formatOverlaySummary(current);
+    teamSwapBtn.classList.toggle("active", !!state.current.overlayTeamSwap);
+    roleSwapBtn.classList.toggle("active", !!state.current.overlayRoleSwap);
+    teamSwapBtn.textContent = state.current.overlayTeamSwap
+      ? "좌우 팀 교체 (ON)"
+      : "좌우 팀 교체";
+    roleSwapBtn.textContent = state.current.overlayRoleSwap
+      ? "좌우 공수 아이콘 교체 (ON)"
+      : "좌우 공수 아이콘 교체";
+  }
+
+  function applyStandardSwapState() {
+    ensureOverlaySwapState();
+    state.current.overlayTeamSwap = false;
+    state.current.overlayRoleSwap = false;
   }
 
   function getSelectedBanOrder() {
@@ -198,6 +281,13 @@ export function createInGameModule(ctx) {
     });
   }
 
+  function publishSwapState(message) {
+    publishInGameState(message, {
+      skipMapPick: true,
+      skipHeroBan: true
+    });
+  }
+
   function getHeroFromCurrentState(teamId) {
     const heroId = state.current?.bans?.[teamId];
     if (!heroId) return null;
@@ -216,7 +306,7 @@ export function createInGameModule(ctx) {
     setSideSelection(state.current.side);
     renderSidePickOwner();
     renderBanPriority();
-    renderLayoutSwap();
+    renderSwapManager();
   }
 
   function bind() {
@@ -241,6 +331,10 @@ export function createInGameModule(ctx) {
         if (targetId === "map-input") {
           updateSideArea("");
           setSideSelection("");
+          state.current.side = "";
+          state.current.attackTeam = "";
+          applyStandardSwapState();
+          renderSwapManager();
         }
       });
     });
@@ -249,39 +343,31 @@ export function createInGameModule(ctx) {
       const map = mapByName(document.getElementById("map-input").value.trim());
       updateSideArea(map ? map.mode : "");
       renderSidePickOwner();
+      renderSwapManager();
     });
 
     document.querySelectorAll("input[name='side']").forEach((radio) => {
       radio.addEventListener("change", (event) => {
         state.current.side = event.target.value;
-        const owner = state.current.sidePickOwner;
-        const attackTeam = owner
-          ? event.target.value === "attack"
-            ? owner
-            : owner === "team1"
-              ? "team2"
-              : "team1"
-          : "";
-        state.current.attackTeam = attackTeam;
-        if (state.current.layoutSwapAuto !== false) {
-          state.current.layoutSwap = computeLayoutSwapForAttackRight(attackTeam);
-          renderLayoutSwap();
-        }
+        state.current.attackTeam = computeAttackTeamFromCurrentSelection();
+        applyStandardSwapState();
+        renderSwapManager();
+        publishSwapState("공/수 선택이 적용되었습니다. (기본 스왑 적용)");
       });
     });
 
-    document.getElementById("layout-swap").addEventListener("change", (event) => {
-      state.current.layoutSwap = event.target.checked;
-      state.current.layoutSwapAuto = false;
-      renderLayoutSwap();
+    document.getElementById("swap-team-btn").addEventListener("click", () => {
+      ensureOverlaySwapState();
+      state.current.overlayTeamSwap = !state.current.overlayTeamSwap;
+      renderSwapManager();
+      publishSwapState("팀 스왑이 적용되었습니다.");
     });
 
-    document.getElementById("layout-auto").addEventListener("change", (event) => {
-      state.current.layoutSwapAuto = event.target.checked;
-      if (state.current.layoutSwapAuto) {
-        state.current.layoutSwap = computeLayoutSwapForAttackRight(state.current.attackTeam);
-      }
-      renderLayoutSwap();
+    document.getElementById("swap-role-btn").addEventListener("click", () => {
+      ensureOverlaySwapState();
+      state.current.overlayRoleSwap = !state.current.overlayRoleSwap;
+      renderSwapManager();
+      publishSwapState("공수 로고 스왑이 적용되었습니다.");
     });
 
     document.getElementById("ban-auto").addEventListener("change", (event) => {
@@ -332,25 +418,14 @@ export function createInGameModule(ctx) {
       state.current.currentMapMode = map ? map.mode : "";
       if (map && (map.mode === "hybrid" || map.mode === "escort")) {
         state.current.side = getSelectedSide();
-        const owner = state.current.sidePickOwner;
-        state.current.attackTeam = owner
-          ? state.current.side === "attack"
-            ? owner
-            : owner === "team1"
-              ? "team2"
-              : "team1"
-          : "";
+        state.current.attackTeam = computeAttackTeamFromCurrentSelection();
+        applyStandardSwapState();
       } else {
         state.current.side = "";
         state.current.attackTeam = "";
+        applyStandardSwapState();
       }
-
-      const layoutAuto = document.getElementById("layout-auto").checked;
-      const layoutSwap = document.getElementById("layout-swap").checked;
-      state.current.layoutSwapAuto = layoutAuto;
-      state.current.layoutSwap = layoutAuto
-        ? computeLayoutSwapForAttackRight(state.current.attackTeam)
-        : layoutSwap;
+      renderSwapManager();
 
       publishInGameState("맵이 적용되었습니다.", { skipHeroBan: true });
     });
@@ -448,13 +523,8 @@ export function createInGameModule(ctx) {
       state.current.bans.team1 = "";
       state.current.bans.team2 = "";
       updateBanControlState();
-
-      const layoutAuto = document.getElementById("layout-auto").checked;
-      const layoutSwap = document.getElementById("layout-swap").checked;
-      state.current.layoutSwapAuto = layoutAuto;
-      state.current.layoutSwap = layoutAuto
-        ? computeLayoutSwapForAttackRight(state.current.attackTeam)
-        : layoutSwap;
+      applyStandardSwapState();
+      renderSwapManager();
 
       publishInGameState("현재 경기 데이터가 초기화되었습니다.", { reset: true });
     });
@@ -474,6 +544,7 @@ export function createInGameModule(ctx) {
 
     document.getElementById("confirmFinish").addEventListener("click", async () => {
       const winner = document.getElementById("finishWinner").value;
+      const currentOverlayView = computeCurrentOverlayView();
       state.history.push({
         index: state.current.currentMatchIndex,
         mapId: state.current.currentMapId,
@@ -483,7 +554,9 @@ export function createInGameModule(ctx) {
         sidePickOwner: state.current.sidePickOwner || "",
         sidePickReason: state.current.sidePickReason || "",
         attackTeam: state.current.attackTeam || "",
-        layoutSwap: !!state.current.layoutSwap,
+        overlayTeamSwap: !!state.current.overlayTeamSwap,
+        overlayRoleSwap: !!state.current.overlayRoleSwap,
+        layoutSwap: currentOverlayView.leftTeamId === "team2",
         banChoiceOwner: state.current.banChoiceOwner || "",
         banOrder: state.current.banOrder || "",
         bans: { ...state.current.bans },

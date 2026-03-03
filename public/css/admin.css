@@ -643,26 +643,6 @@ button.danger:hover {
   flex-wrap: wrap;
 }
 
-.layout-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  align-items: center;
-  padding: 12px;
-  background: var(--surface-0);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-}
-
-.layout-row label {
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 0;
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
 /* ─── Side Area ──────────────────────────────────── */
 .side-area {
   margin-top: 12px;
@@ -691,6 +671,47 @@ button.danger:hover {
   font-size: 13px;
   color: var(--text-secondary);
   cursor: pointer;
+}
+
+.swap-manager {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.swap-block {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+}
+
+.swap-label {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.swap-summary {
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.swap-controls {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.swap-controls button.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border: 1px solid rgba(79, 184, 255, 0.35);
 }
 
 /* ─── Modal ──────────────────────────────────────── */

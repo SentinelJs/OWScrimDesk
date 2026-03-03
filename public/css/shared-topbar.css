@@ -1,3 +1,7 @@
+:root {
+  --shared-topbar-team-name-no-logo-offset: 16px;
+}
+
 .header {
   height: var(--header-height);
   display: flex;
@@ -94,6 +98,7 @@
 .team-block.left .team-name {
   justify-content: flex-start;
   text-align: left;
+  margin-left: 0;
 }
 
 .team-block.right .team-inline {
@@ -103,6 +108,15 @@
 .team-block.right .team-name {
   justify-content: flex-end;
   text-align: right;
+  margin-right: 0;
+}
+
+.team-block.left.no-logo .team-name {
+  margin-left: var(--shared-topbar-team-name-no-logo-offset);
+}
+
+.team-block.right.no-logo .team-name {
+  margin-right: var(--shared-topbar-team-name-no-logo-offset);
 }
 
 .center-block {

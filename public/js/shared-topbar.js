@@ -9,12 +9,15 @@
 
   function updateLogo(container, logoUrl) {
     if (!container) return;
+    const teamBlock = container.closest(".team-block");
     container.innerHTML = "";
     if (!logoUrl) {
       container.style.display = "none";
+      if (teamBlock) teamBlock.classList.add("no-logo");
       return;
     }
     container.style.display = "grid";
+    if (teamBlock) teamBlock.classList.remove("no-logo");
     const img = document.createElement("img");
     img.src = encodeURI(logoUrl);
     img.alt = "";

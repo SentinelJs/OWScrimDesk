@@ -354,37 +354,42 @@
                 }
             }
             const hasAttack = attackTeam === "team1" || attackTeam === "team2";
+            const standardLeftTeamId = hasAttack
+                ? (attackTeam === "team1" ? "team2" : "team1")
+                : "team1";
+            const standardRightTeamId = hasAttack
+                ? attackTeam
+                : "team2";
 
-            const layoutSwap = !!safeState.layoutSwap;
-            const leftTeamId = layoutSwap ? "team2" : "team1";
-            const rightTeamId = layoutSwap ? "team1" : "team2";
+            const teamSwapEnabled = !!safeState.overlayTeamSwap;
+            const roleSwapEnabled = !!safeState.overlayRoleSwap;
 
-            const roleByTeam = {
-                team1: hasAttack ? (attackTeam === "team1" ? "attack" : "defense") : "",
-                team2: hasAttack ? (attackTeam === "team2" ? "attack" : "defense") : ""
-            };
+            const leftTeamId = teamSwapEnabled ? standardRightTeamId : standardLeftTeamId;
+            const rightTeamId = teamSwapEnabled ? standardLeftTeamId : standardRightTeamId;
+
+            const standardLeftRole = hasAttack ? "defense" : "";
+            const standardRightRole = hasAttack ? "attack" : "";
+            const leftRole = roleSwapEnabled ? standardRightRole : standardLeftRole;
+            const rightRole = roleSwapEnabled ? standardLeftRole : standardRightRole;
 
             const teamData = {
                 team1: {
                     name: safeTeams.team1.name,
                     score: safeScore.team1,
                     banImage: team1Ban ? team1Ban.image : "",
-                    logo: safeTeams.team1.logo,
-                    role: roleByTeam.team1,
-                    roleColor: safeTeams.team1.color
+                    logo: safeTeams.team1.logo
                 },
                 team2: {
                     name: safeTeams.team2.name,
                     score: safeScore.team2,
                     banImage: team2Ban ? team2Ban.image : "",
-                    logo: safeTeams.team2.logo,
-                    role: roleByTeam.team2,
-                    roleColor: safeTeams.team2.color
+                    logo: safeTeams.team2.logo
                 }
             };
 
             updateTeam('left', {
                 ...teamData[leftTeamId],
+                role: leftRole,
                 showBan: settings.enableHeroBan,
                 showLogo: true,
                 showRole: isSideMode && hasAttack
@@ -392,6 +397,7 @@
 
             updateTeam('right', {
                 ...teamData[rightTeamId],
+                role: rightRole,
                 showBan: settings.enableHeroBan,
                 showLogo: true,
                 showRole: isSideMode && hasAttack
@@ -425,11 +431,11 @@
 
             // Role
             const roleBox = document.getElementById(`${side}-role`);
-            if (data.showRole) {
-                const roleForSide = side === "left" ? "defense" : "attack";
+            if (data.showRole && data.role) {
                 roleBox.classList.remove('hidden');
-                roleBox.style.backgroundColor = ROLE_COLORS[roleForSide];
-                document.getElementById(`${side}-role-icon`).src = roleForSide === "attack" ? ICON_ATTACK : ICON_DEFEND;
+                const boxRoleColor = side === "left" ? "defense" : "attack";
+                roleBox.style.backgroundColor = ROLE_COLORS[boxRoleColor];
+                document.getElementById(`${side}-role-icon`).src = data.role === "attack" ? ICON_ATTACK : ICON_DEFEND;
             } else {
                 roleBox.classList.add('hidden');
             }
