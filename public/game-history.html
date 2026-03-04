@@ -15,10 +15,12 @@
       --ui-font-scale: 1.2;
       --card-gap: 2px;
       --card-top-height: 56px;
-      --card-bans-height: 160px;
+      --card-bans-height: 180px;
       --card-mapname-height: 65px;
-      --ban-card-width: clamp(50px, 3.8vw, 78px);
-      --ban-label-height: clamp(16px, 1.1vw, 21px);
+      --ban-card-width: clamp(65px, 5vw, 100px);
+      --ban-label-height: clamp(18px, 1.4vw, 24px);
+      --ban-cell-gap: 50px;
+      --mode-icon-size: clamp(40px, 4vw, 60px);
     }
 
     * { box-sizing: border-box; }
@@ -219,7 +221,7 @@
       grid-template-columns: auto auto auto;
       align-items: center;
       justify-items: center;
-      column-gap: 40px;
+      column-gap: var(--ban-cell-gap);
       width: max-content;
       justify-self: center;
       align-self: start;
@@ -274,30 +276,30 @@
     }
 
     .mode-icon {
-      width: clamp(30px, 3vw, 46px);
-      height: clamp(30px, 3vw, 46px);
+      width: var(--mode-icon-size);
+      height: var(--mode-icon-size);
       object-fit: contain;
       opacity: 0.95;
     }
 
     @supports (width: 1cqw) {
       .slot-card .ban-cell-group {
-        column-gap: clamp(8px, 9cqw, 40px);
+        column-gap: clamp(8px, 9cqw, 50px);
       }
 
       .slot-card .ban-label,
       .slot-card .ban-media {
-        width: clamp(32px, 18cqw, 62px);
+        width: clamp(48px, 17cqw, 80px);
       }
 
       .slot-card .ban-label {
-        height: clamp(11px, 6.5cqw, 18px);
-        font-size: clamp(8px, 3.6cqw, 12px);
+        height: clamp(14px, 6.5cqw, 20px);
+        font-size: clamp(10px, 3.8cqw, 14px);
       }
 
       .slot-card .mode-icon {
-        width: clamp(18px, 13cqw, 38px);
-        height: clamp(18px, 13cqw, 38px);
+        width: clamp(30px, 12cqw, 50px);
+        height: clamp(30px, 12cqw, 50px);
       }
     }
 

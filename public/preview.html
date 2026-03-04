@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>1920x1080 Preview</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #1a1a1a;
+      font-family: system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    .controls {
+      background: #2a2a2a;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      border-bottom: 1px solid #3a3a3a;
+      flex-shrink: 0;
+    }
+
+    .controls label {
+      color: #fff;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .controls select {
+      background: #3a3a3a;
+      color: #fff;
+      border: 1px solid #4a4a4a;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      min-width: 200px;
+    }
+
+    .controls select:hover {
+      background: #4a4a4a;
+    }
+
+    .controls input[type="text"] {
+      background: #3a3a3a;
+      color: #fff;
+      border: 1px solid #4a4a4a;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 14px;
+      flex: 1;
+      max-width: 400px;
+    }
+
+    .controls button {
+      background: #dcb043;
+      color: #1a1a1a;
+      border: none;
+      padding: 6px 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .controls button:hover {
+      background: #f0c050;
+    }
+
+    .scale-info {
+      color: #888;
+      font-size: 12px;
+      margin-left: auto;
+    }
+
+    .preview-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: auto;
+      padding: 20px;
+    }
+
+    .preview-wrapper {
+      width: 1920px;
+      height: 1080px;
+      position: relative;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      background: #000;
+      transform-origin: center center;
+    }
+
+    .preview-wrapper iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+
+    .resolution-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(220, 176, 67, 0.9);
+      color: #1a1a1a;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      pointer-events: none;
+      z-index: 1000;
+    }
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <label for="pageSelect">페이지 선택:</label>
+    <select id="pageSelect">
+      <option value="/admin.html">관리자 패널</option>
+      <option value="/overlay.html">인게임 오버레이</option>
+      <option value="/match-start.html">매치 시작 화면</option>
+      <option value="/map-pick.html">맵 픽 화면</option>
+      <option value="/hero-ban.html">영웅 밴 화면</option>
+      <option value="/game-history.html">게임 히스토리</option>
+    </select>
+
+    <label for="customUrl">또는 URL 입력:</label>
+    <input type="text" id="customUrl" placeholder="/your-page.html">
+    <button id="loadBtn">불러오기</button>
+
+    <span class="scale-info" id="scaleInfo">Scale: 100%</span>
+  </div>
+
+  <div class="preview-container">
+    <div class="preview-wrapper" id="previewWrapper">
+      <div class="resolution-badge">1920 × 1080</div>
+      <iframe id="previewFrame" src="/admin.html"></iframe>
+    </div>
+  </div>
+
+  <script>
+    const pageSelect = document.getElementById('pageSelect');
+    const customUrl = document.getElementById('customUrl');
+    const loadBtn = document.getElementById('loadBtn');
+    const previewFrame = document.getElementById('previewFrame');
+    const previewWrapper = document.getElementById('previewWrapper');
+    const scaleInfo = document.getElementById('scaleInfo');
+
+    function loadPage(url) {
+      previewFrame.src = url;
+      customUrl.value = '';
+    }
+
+    function updateScale() {
+      const container = document.querySelector('.preview-container');
+      const containerWidth = container.clientWidth - 40;
+      const containerHeight = container.clientHeight - 40;
+      
+      const scaleX = containerWidth / 1920;
+      const scaleY = containerHeight / 1080;
+      const scale = Math.min(scaleX, scaleY, 1);
+      
+      previewWrapper.style.transform = `scale(${scale})`;
+      scaleInfo.textContent = `Scale: ${Math.round(scale * 100)}%`;
+    }
+
+    pageSelect.addEventListener('change', (e) => {
+      loadPage(e.target.value);
+    });
+
+    loadBtn.addEventListener('click', () => {
+      const url = customUrl.value.trim();
+      if (url) {
+        loadPage(url);
+        pageSelect.value = '';
+      }
+    });
+
+    customUrl.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        loadBtn.click();
+      }
+    });
+
+    window.addEventListener('resize', updateScale);
+    updateScale();
+
+    // 초기 로드시 스케일 다시 계산
+    setTimeout(updateScale, 100);
+  </script>
+</body>
+</html>
