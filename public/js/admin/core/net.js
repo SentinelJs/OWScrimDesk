@@ -2,14 +2,14 @@ let ws;
 let publishQueue = [];
 
 function flushPublishQueue(result) {
-  if (!publishQueue.length) return;
   const item = publishQueue.shift();
-  clearTimeout(item.timer);
-  item.resolve(result);
+  if (item) {
+    clearTimeout(item.timer);
+    item.resolve(result);
+  }
 }
 
 function clearPublishQueueOnDisconnect() {
-  if (!publishQueue.length) return;
   publishQueue.forEach((item) => {
     clearTimeout(item.timer);
     item.resolve({ ok: false, message: "웹소켓 연결이 끊어졌습니다." });

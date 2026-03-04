@@ -84,16 +84,13 @@ function getSelectableMapIds({ enableMapPick, settings, historyGames }) {
 }
 
 function validateBans({ enableHeroBan, banA, banB, heroesById, historyGames }) {
-  if (!enableHeroBan) {
-    return { ok: true };
-  }
-
-  if (!banA && !banB) {
+  if (!enableHeroBan || (!banA && !banB)) {
     return { ok: true };
   }
 
   const heroA = banA ? heroesById.get(banA) : null;
   const heroB = banB ? heroesById.get(banB) : null;
+  
   if ((banA && !heroA) || (banB && !heroB)) {
     return {
       ok: false,
@@ -113,20 +110,19 @@ function validateBans({ enableHeroBan, banA, banB, heroesById, historyGames }) {
   const usedBansA = historyGames.map((game) => game.bans?.team1).filter(Boolean);
   const usedBansB = historyGames.map((game) => game.bans?.team2).filter(Boolean);
 
-  if (banA && usedBansA.includes(banA)) {
-    return {
-      ok: false,
-      code: "BAN_DUPLICATE_IN_SERIES_TEAM_A",
-      message: "Team 1은 시리즈에서 동일 영웅을 2번 밴할 수 없습니다."
-    };
-  }
+  const duplicateChecks = [
+    { ban: banA, used: usedBansA, team: "Team 1", code: "BAN_DUPLICATE_IN_SERIES_TEAM_A" },
+    { ban: banB, used: usedBansB, team: "Team 2", code: "BAN_DUPLICATE_IN_SERIES_TEAM_B" }
+  ];
 
-  if (banB && usedBansB.includes(banB)) {
-    return {
-      ok: false,
-      code: "BAN_DUPLICATE_IN_SERIES_TEAM_B",
-      message: "Team 2은 시리즈에서 동일 영웅을 2번 밴할 수 없습니다."
-    };
+  for (const { ban, used, team, code } of duplicateChecks) {
+    if (ban && used.includes(ban)) {
+      return {
+        ok: false,
+        code,
+        message: `${team}은 시리즈에서 동일 영웅을 2번 밴할 수 없습니다.`
+      };
+    }
   }
 
   if (heroA && heroB && heroA.role === heroB.role) {

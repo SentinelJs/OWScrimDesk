@@ -1,13 +1,9 @@
 export function createInGameModule(ctx) {
   const { state, wsPublish, showToast, fetchJSON } = ctx;
 
-  function mapByName(name) {
-    return state.assets.maps.find((map) => map.name === name) || null;
-  }
-
-  function heroByName(name) {
-    return state.assets.heroes.find((hero) => hero.name === name) || null;
-  }
+  const findByName = (collection, name) => collection.find((item) => item.name === name) || null;
+  const mapByName = (name) => findByName(state.assets.maps, name);
+  const heroByName = (name) => findByName(state.assets.heroes, name);
 
   function computeAvailableModes(settings, history) {
     const mapPoolByMode = settings.mapPool || {};
@@ -51,27 +47,20 @@ export function createInGameModule(ctx) {
     return state.assets.maps.filter((map) => isMapSelectable(map));
   }
 
-  function getHeroByInputValue(inputId) {
-    const value = document.getElementById(inputId)?.value?.trim() || "";
-    if (!value) return null;
-    return heroByName(value);
-  }
+  const getHeroById = (heroId) => heroId ? state.assets.heroes.find((hero) => hero.id === heroId) || null : null;
+  const getHeroByInputValue = (inputId) => heroByName(document.getElementById(inputId)?.value?.trim() || "");
+  const getHeroFromCurrentState = (teamId) => getHeroById(state.current?.bans?.[teamId]);
 
   function isHeroSelectable(teamId, hero) {
-    if (!state.settings.enableHeroBan) return true;
-    if (!hero) return false;
+    if (!state.settings.enableHeroBan || !hero) return !state.settings.enableHeroBan;
 
     const usedBans = state.history.map((game) => game.bans?.[teamId]).filter(Boolean);
     if (usedBans.includes(hero.id)) return false;
 
     const otherTeamId = teamId === "team1" ? "team2" : "team1";
     const otherHero = getHeroByInputValue(otherTeamId === "team1" ? "ban-team1" : "ban-team2");
-    if (otherHero) {
-      if (otherHero.id === hero.id) return false;
-      if (otherHero.role === hero.role) return false;
-    }
-
-    return true;
+    
+    return !otherHero || (otherHero.id !== hero.id && otherHero.role !== hero.role);
   }
 
   function getSelectableHeroes(teamId) {
@@ -115,15 +104,11 @@ export function createInGameModule(ctx) {
   }
 
   function computeStandardOverlayView() {
-    const selectedAttackTeam = computeAttackTeamFromCurrentSelection();
-    const attackTeam = selectedAttackTeam || (state.current.side ? state.current.attackTeam : "");
-    const hasAttack = attackTeam === "team1" || attackTeam === "team2";
-    const leftTeamId = hasAttack
-      ? (attackTeam === "team1" ? "team2" : "team1")
-      : "team1";
-    const rightTeamId = hasAttack
-      ? attackTeam
-      : "team2";
+    const attackTeam = computeAttackTeamFromCurrentSelection() || (state.current.side ? state.current.attackTeam : "");
+    const hasAttack = ["team1", "team2"].includes(attackTeam);
+    const leftTeamId = hasAttack && attackTeam === "team1" ? "team2" : "team1";
+    const rightTeamId = hasAttack ? attackTeam : "team2";
+    
     return {
       hasAttack,
       attackTeam,
@@ -137,8 +122,9 @@ export function createInGameModule(ctx) {
   function computeCurrentOverlayView() {
     ensureOverlaySwapState();
     const standard = computeStandardOverlayView();
-    const teamSwapped = !!state.current.overlayTeamSwap;
-    const roleSwapped = !!state.current.overlayRoleSwap;
+    const teamSwapped = state.current.overlayTeamSwap;
+    const roleSwapped = state.current.overlayRoleSwap;
+    
     return {
       ...standard,
       leftTeamId: teamSwapped ? standard.rightTeamId : standard.leftTeamId,
@@ -288,10 +274,36 @@ export function createInGameModule(ctx) {
     });
   }
 
-  function getHeroFromCurrentState(teamId) {
-    const heroId = state.current?.bans?.[teamId];
-    if (!heroId) return null;
-    return state.assets.heroes.find((hero) => hero.id === heroId) || null;
+  function validateHeroBan(teamId, rawValue) {
+    if (!state.settings.enableHeroBan) {
+      return { error: "영웅밴이 비활성화 상태입니다." };
+    }
+    
+    const hero = rawValue ? heroByName(rawValue) : null;
+    const teamName = teamId === "team1" ? "Team 1" : "Team 2";
+    
+    if (rawValue && !hero) {
+      return { error: `${teamName}의 밴 영웅을 목록에서 다시 선택해주세요.` };
+    }
+    
+    if (hero && !isHeroSelectable(teamId, hero)) {
+      return { error: `${teamName}이 선택할 수 없는 영웅입니다.` };
+    }
+    
+    const otherTeamId = teamId === "team1" ? "team2" : "team1";
+    const otherInputId = otherTeamId === "team1" ? "ban-team1" : "ban-team2";
+    const otherHero = heroByName(document.getElementById(otherInputId).value.trim()) || getHeroFromCurrentState(otherTeamId);
+    
+    if (hero && otherHero) {
+      if (otherHero.id === hero.id) {
+        return { error: "동일한 영웅을 선택할 수 없습니다." };
+      }
+      if (otherHero.role === hero.role) {
+        return { error: "동일한 역할군의 영웅을 선택할 수 없습니다." };
+      }
+    }
+    
+    return { hero };
   }
 
   function render() {
@@ -431,61 +443,25 @@ export function createInGameModule(ctx) {
     });
 
     document.getElementById("applyBanTeam1").addEventListener("click", async () => {
-      if (!state.settings.enableHeroBan) {
-        return alert("영웅밴이 비활성화 상태입니다.");
-      }
       const rawValue = document.getElementById("ban-team1").value.trim();
-      const hero1 = rawValue ? heroByName(rawValue) : null;
-      if (rawValue && !hero1) {
-        return alert("Team 1의 밴 영웅을 목록에서 다시 선택해주세요.");
-      }
-      if (hero1 && !isHeroSelectable("team1", hero1)) {
-        return alert("Team 1이 선택할 수 없는 영웅입니다.");
-      }
-
-      const otherHero = heroByName(document.getElementById("ban-team2").value.trim()) || getHeroFromCurrentState("team2");
-      if (hero1 && otherHero) {
-        if (otherHero.id === hero1.id) {
-          return alert("동일한 영웅을 선택할 수 없습니다.");
-        }
-        if (otherHero.role === hero1.role) {
-          return alert("동일한 역할군의 영웅을 선택할 수 없습니다.");
-        }
-      }
-
-      state.current.bans.team1 = hero1 ? hero1.id : "";
+      const result = validateHeroBan("team1", rawValue);
+      
+      if (result.error) return alert(result.error);
+      
+      state.current.bans.team1 = result.hero ? result.hero.id : "";
       updateBanControlState();
-
-      publishInGameState(hero1 ? "Team 1 밴이 적용되었습니다." : "Team 1 밴이 초기화되었습니다.");
+      publishInGameState(result.hero ? "Team 1 밴이 적용되었습니다." : "Team 1 밴이 초기화되었습니다.");
     });
 
     document.getElementById("applyBanTeam2").addEventListener("click", async () => {
-      if (!state.settings.enableHeroBan) {
-        return alert("영웅밴이 비활성화 상태입니다.");
-      }
       const rawValue = document.getElementById("ban-team2").value.trim();
-      const hero2 = rawValue ? heroByName(rawValue) : null;
-      if (rawValue && !hero2) {
-        return alert("Team 2의 밴 영웅을 목록에서 다시 선택해주세요.");
-      }
-      if (hero2 && !isHeroSelectable("team2", hero2)) {
-        return alert("Team 2가 선택할 수 없는 영웅입니다.");
-      }
-
-      const otherHero = heroByName(document.getElementById("ban-team1").value.trim()) || getHeroFromCurrentState("team1");
-      if (hero2 && otherHero) {
-        if (otherHero.id === hero2.id) {
-          return alert("동일한 영웅을 선택할 수 없습니다.");
-        }
-        if (otherHero.role === hero2.role) {
-          return alert("동일한 역할군의 영웅을 선택할 수 없습니다.");
-        }
-      }
-
-      state.current.bans.team2 = hero2 ? hero2.id : "";
+      const result = validateHeroBan("team2", rawValue);
+      
+      if (result.error) return alert(result.error);
+      
+      state.current.bans.team2 = result.hero ? result.hero.id : "";
       updateBanControlState();
-
-      publishInGameState(hero2 ? "Team 2 밴이 적용되었습니다." : "Team 2 밴이 초기화되었습니다.");
+      publishInGameState(result.hero ? "Team 2 밴이 적용되었습니다." : "Team 2 밴이 초기화되었습니다.");
     });
 
     document.getElementById("resetBanTeam1").addEventListener("click", () => {

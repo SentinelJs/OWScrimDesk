@@ -134,6 +134,130 @@ body {
   border-radius: 99px;
 }
 
+/* ─── ETC ───────────────────────────────────────── */
+#tab-etc .grid.two {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+#tab-etc .grid.two > .card:first-child {
+  overflow-x: auto;
+}
+
+.etc-timer-grid {
+  margin-top: 6px;
+}
+
+.etc-content-table {
+  margin-top: 8px;
+  width: 100%;
+  min-width: 980px;
+}
+
+.etc-content-table th:nth-child(2),
+.etc-content-table td:nth-child(2) {
+  min-width: 120px;
+}
+
+.etc-content-table th:nth-child(3),
+.etc-content-table td:nth-child(3) {
+  min-width: 90px;
+}
+
+.etc-content-table th:nth-child(4),
+.etc-content-table td:nth-child(4) {
+  min-width: 320px;
+}
+
+.etc-content-table th:nth-child(5),
+.etc-content-table td:nth-child(5) {
+  min-width: 220px;
+}
+
+.etc-content-table th:nth-child(6),
+.etc-content-table td:nth-child(6),
+.etc-content-table th:nth-child(7),
+.etc-content-table td:nth-child(7),
+.etc-content-table th:nth-child(8),
+.etc-content-table td:nth-child(8) {
+  min-width: 54px;
+}
+
+.etc-content-table th,
+.etc-content-table td {
+  font-size: 11px;
+  padding: 6px;
+}
+
+.etc-content-table td input[type="text"],
+.etc-content-table td input[type="number"],
+.etc-content-table td select {
+  min-width: 0;
+  width: 100%;
+  font-size: 11px;
+}
+
+.etc-content-table td input[type="checkbox"],
+.etc-content-table td input[type="radio"] {
+  width: 14px;
+  height: 14px;
+}
+
+.etc-content-table .icon-delete {
+  width: auto;
+  min-width: 34px;
+  padding: 4px 8px;
+  line-height: 1;
+}
+
+.etc-player-shell {
+  display: grid;
+  gap: 14px;
+}
+
+.etc-player-team h4 {
+  margin-bottom: 8px;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+  color: var(--text-secondary);
+}
+
+.etc-player-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.etc-player-table th,
+.etc-player-table td {
+  border-bottom: 1px solid var(--border);
+  padding: 6px;
+  font-size: 11px;
+  text-align: left;
+}
+
+.etc-player-table th:first-child,
+.etc-player-table td:first-child {
+  width: 30px;
+  text-align: center;
+}
+
+.etc-player-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.etc-player-table input {
+  padding: 6px 8px;
+  font-size: 11px;
+  min-width: 0;
+}
+
+.muted {
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
 /* ─── Team Identity Banner ───────────────────────── */
 .team-identity {
   margin: 16px 28px 0;

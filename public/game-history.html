@@ -149,7 +149,8 @@
     }
 
     .slot-card.played .slot-inner,
-    .slot-card.current .slot-inner {
+    .slot-card.current .slot-inner,
+    .slot-card.pending .slot-inner {
       display: grid;
       grid-template-rows: minmax(0, 1fr) var(--card-mapname-height);
     }
@@ -549,8 +550,8 @@
           }
 
           const teamColor = playedWinnerTeam?.color || "";
-          card.style.setProperty("--played-gradient-strong", colorToRgba(teamColor, 0.78));
-          card.style.setProperty("--played-gradient-mid", colorToRgba(teamColor, 0.52));
+          card.style.setProperty("--played-gradient-strong", colorToRgba(teamColor, 0.8));
+          card.style.setProperty("--played-gradient-mid", colorToRgba(teamColor, 0));
         } else if (isCurrent) {
           card.classList.add("current");
           mapData = mapsById.get(state.currentMapId) || null;
@@ -641,6 +642,11 @@
           inner.appendChild(mapNameBar);
         } else {
           inner.appendChild(visual);
+
+          const mapNameBar = document.createElement("div");
+          mapNameBar.className = "map-name";
+          mapNameBar.textContent = "-";
+          inner.appendChild(mapNameBar);
         }
 
         card.appendChild(inner);

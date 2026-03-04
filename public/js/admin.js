@@ -7,12 +7,14 @@ import { createTeamModule } from "./admin/features/team.js";
 import { createInGameModule } from "./admin/features/ingame.js";
 import { createHistoryModule } from "./admin/features/history.js";
 import { createMatchModule } from "./admin/features/match.js";
+import { createEtcModule } from "./admin/features/etc.js";
 
 const ctx = {
   state,
   fetchJSON,
   wsPublish,
   showToast,
+  showError,
   views: {}
 };
 
@@ -37,6 +39,7 @@ async function refreshAllData() {
   if (ctx.views.renderInGame) ctx.views.renderInGame();
   if (ctx.views.renderHistory) ctx.views.renderHistory();
   if (ctx.views.renderMatchInfo) ctx.views.renderMatchInfo();
+  if (ctx.views.renderEtc) ctx.views.renderEtc();
 
   showToast("최신 정보를 불러왔습니다.");
 }
@@ -49,7 +52,8 @@ function bindTopLevelEvents() {
     refreshTeam: refreshAllData,
     refreshInGame: refreshAllData,
     refreshHistory: refreshAllData,
-    refreshMatch: refreshAllData
+    refreshMatch: refreshAllData,
+    refreshEtc: refreshAllData
   };
 
   Object.entries(refreshMap).forEach(([id, handler]) => {
@@ -69,10 +73,6 @@ function tabInit() {
       refreshAllData();
     });
   });
-}
-
-function renderDatalists() {
-  return;
 }
 
 async function init() {
@@ -99,22 +99,25 @@ async function init() {
   const ingameModule = createInGameModule(ctx);
   const historyModule = createHistoryModule(ctx);
   const matchModule = createMatchModule(ctx);
+  const etcModule = createEtcModule(ctx);
 
   ctx.views.renderTeamForm = teamModule.render;
   ctx.views.renderInGame = ingameModule.render;
   ctx.views.renderHistory = historyModule.render;
   ctx.views.renderMatchInfo = matchModule.render;
+  ctx.views.renderEtc = etcModule.render;
 
-  renderDatalists();
   teamModule.render();
   ingameModule.render();
   historyModule.render();
   matchModule.render();
+  etcModule.render();
 
   teamModule.bind();
   ingameModule.bind();
   historyModule.bind();
   matchModule.bind();
+  etcModule.bind();
   bindTopLevelEvents();
 
   setupAutocomplete({

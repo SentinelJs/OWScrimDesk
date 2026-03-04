@@ -21,6 +21,21 @@ const DEFAULT_SETTINGS = {
   firstPickTeamId: "team1",
   enableHeroBan: true,
   enableMapPick: true,
+  etc: {
+    sponsor: "",
+    breakContentType: "youtube",
+    breakContentUrl: "",
+    breakContents: [],
+    selectedBreakContentId: "",
+    revision: 0,
+    rotationSeed: 0,
+    breakMinutes: 10,
+    breakSeconds: 0,
+    players: {
+      team1: [],
+      team2: []
+    }
+  },
   mapPool: {
     control: [],
     hybrid: [],
@@ -29,6 +44,91 @@ const DEFAULT_SETTINGS = {
     escort: []
   }
 };
+
+function normalizeEtcSettings(etc) {
+  const source = etc || {};
+  const players = source.players || {};
+
+  const normalizeContentItem = (item, index) => {
+    const safeType = item?.type === "image" ? "image" : "youtube";
+    const safeUrl = typeof item?.url === "string" ? item.url : "";
+    const safeId = typeof item?.id === "string" && item.id.trim()
+      ? item.id.trim()
+      : `content-${index + 1}`;
+    const safeDuration = Number(item?.durationSeconds);
+    return {
+      id: safeId,
+      title: typeof item?.title === "string" ? item.title : `콘텐츠 ${index + 1}`,
+      type: safeType,
+      url: safeUrl,
+      durationSeconds: Number.isFinite(safeDuration)
+        ? Math.max(1, Math.min(36000, Math.floor(safeDuration)))
+        : 30,
+      enabled: item?.enabled !== false,
+      order: Number.isFinite(Number(item?.order)) ? Number(item.order) : index
+    };
+  };
+
+  const rawContents = Array.isArray(source.breakContents)
+    ? source.breakContents
+    : (typeof source.breakContentUrl === "string" && source.breakContentUrl.trim())
+      ? [{
+          id: "legacy-1",
+          title: "기존 콘텐츠",
+          type: source.breakContentType === "image" ? "image" : "youtube",
+          url: source.breakContentUrl,
+          enabled: true,
+          order: 0
+        }]
+      : [];
+
+  const legacyDuration = Number(source.breakDurationSeconds);
+  const breakContents = rawContents
+    .slice(0, 200)
+    .map((item, index) => normalizeContentItem({
+      ...item,
+      durationSeconds: item?.durationSeconds ?? legacyDuration
+    }, index))
+    .sort((a, b) => a.order - b.order)
+    .map((item, index) => ({ ...item, order: index }));
+
+  const selectedBreakContentId = typeof source.selectedBreakContentId === "string"
+    ? source.selectedBreakContentId
+    : "";
+  const revision = Number(source.revision);
+  const rotationSeed = Number(source.rotationSeed ?? source.autoRotateSeed);
+
+  const normalizePlayers = (value) => {
+    if (!Array.isArray(value)) return [];
+    return value.slice(0, 10).map((player) => ({
+      name: typeof player?.name === "string" ? player.name : "",
+      position: typeof player?.position === "string" ? player.position : "",
+      mainHero: typeof player?.mainHero === "string" ? player.mainHero : "",
+      tier: typeof player?.tier === "string" ? player.tier : ""
+    }));
+  };
+
+  const minutes = Number(source.breakMinutes);
+  const seconds = Number(source.breakSeconds);
+
+  return {
+    sponsor: typeof source.sponsor === "string" ? source.sponsor : "",
+    breakContentType: source.breakContentType === "image" ? "image" : "youtube",
+    breakContentUrl: typeof source.breakContentUrl === "string" ? source.breakContentUrl : "",
+    breakContents,
+    selectedBreakContentId: breakContents.some((item) => item.id === selectedBreakContentId)
+      ? selectedBreakContentId
+      : (breakContents[0]?.id || ""),
+    revision: Number.isFinite(revision) ? Math.max(0, Math.floor(revision)) : 0,
+    rotationSeed: Number.isFinite(rotationSeed) ? Math.max(0, Math.floor(rotationSeed)) : 0,
+    breakMinutes: Number.isFinite(minutes) ? Math.max(0, Math.min(180, minutes)) : 10,
+    breakSeconds: Number.isFinite(seconds) ? Math.max(0, Math.min(59, seconds)) : 0,
+    players: {
+      team1: normalizePlayers(players.team1),
+      team2: normalizePlayers(players.team2)
+    }
+  };
+}
 
 function normalizeSettings(settings) {
   const source = settings || {};
@@ -40,6 +140,7 @@ function normalizeSettings(settings) {
     firstPickTeamId: source.firstPickTeamId || DEFAULT_SETTINGS.firstPickTeamId,
     enableHeroBan: source.enableHeroBan !== false,
     enableMapPick: source.enableMapPick !== false,
+    etc: normalizeEtcSettings(source.etc),
     mapPool: {
       control: Array.isArray(mapPool.control) ? mapPool.control : [],
       hybrid: Array.isArray(mapPool.hybrid) ? mapPool.hybrid : [],
@@ -80,7 +181,7 @@ const DEFAULT_STATE = {
   lastWinnerTeamId: ""
 };
 
-function applySidePickMeta({ settings, state, history }) {
+function normalizeMatchIndex(state, history) {
   const maxIndex = history.length + 1;
   if (!state.currentMatchIndex || state.currentMatchIndex < 1) {
     state.currentMatchIndex = 1;
@@ -88,6 +189,10 @@ function applySidePickMeta({ settings, state, history }) {
   if (state.currentMatchIndex > maxIndex) {
     state.currentMatchIndex = maxIndex;
   }
+}
+
+function applySidePickMeta({ settings, state, history }) {
+  normalizeMatchIndex(state, history);
   const { ownerTeam, reason } = getSidePickOwner({
     gameIndex: state.currentMatchIndex,
     initialLeadTeam: settings.firstPickTeamId,
@@ -99,67 +204,50 @@ function applySidePickMeta({ settings, state, history }) {
 
 function applyBanPriorityMeta({ settings, state, history }) {
   if (!settings.enableHeroBan) {
-    state.banChoiceOwnerAuto = "";
-    state.banChoiceOwner = "";
-    state.banChoiceOwnerReason = "";
-    state.banOrderAuto = "";
-    state.banOrder = "";
+    Object.assign(state, {
+      banChoiceOwnerAuto: "",
+      banChoiceOwner: "",
+      banChoiceOwnerReason: "",
+      banOrderAuto: "",
+      banOrder: ""
+    });
     return;
   }
-  const maxIndex = history.length + 1;
-  if (!state.currentMatchIndex || state.currentMatchIndex < 1) {
-    state.currentMatchIndex = 1;
-  }
-  if (state.currentMatchIndex > maxIndex) {
-    state.currentMatchIndex = maxIndex;
-  }
+  
+  normalizeMatchIndex(state, history);
   const gameIndex = state.currentMatchIndex;
   const initialLeadTeam = settings.firstPickTeamId;
-  if (gameIndex === 1) {
+  const prev = gameIndex > 1 ? history.find((game) => game.index === gameIndex - 1) : null;
+  
+  if (gameIndex === 1 || !prev || !prev.winner) {
     state.banChoiceOwnerAuto = initialLeadTeam;
     state.banChoiceOwnerReason = "MAP1_INITIAL";
   } else {
-    const prev = history.find((game) => game.index === gameIndex - 1);
-    if (!prev || !prev.winner) {
-      state.banChoiceOwnerAuto = initialLeadTeam;
-      state.banChoiceOwnerReason = "MAP1_INITIAL";
-    } else {
-      state.banChoiceOwnerAuto = prev.winner === "team1" ? "team2" : "team1";
-      state.banChoiceOwnerReason = "PREV_LOSER";
-    }
+    state.banChoiceOwnerAuto = prev.winner === "team1" ? "team2" : "team1";
+    state.banChoiceOwnerReason = "PREV_LOSER";
   }
 
-  const manualOwner = ["team1", "team2"].includes(state.banChoiceOwnerManual)
+  state.banChoiceOwner = ["team1", "team2"].includes(state.banChoiceOwnerManual)
     ? state.banChoiceOwnerManual
-    : "";
-  state.banChoiceOwner = manualOwner || state.banChoiceOwnerAuto;
+    : state.banChoiceOwnerAuto;
 
   state.banOrderAuto = state.banChoiceOwnerAuto === "team1" ? "A_FIRST" : "B_FIRST";
-  const manualOrder = ["A_FIRST", "B_FIRST"].includes(state.banOrderManual)
+  state.banOrder = ["A_FIRST", "B_FIRST"].includes(state.banOrderManual)
     ? state.banOrderManual
-    : "";
-  state.banOrder = manualOrder || state.banOrderAuto;
+    : state.banOrderAuto;
 }
 
 function applyLayoutSwapMeta({ state }) {
-  if (state.sidePickOwner && state.side === "attack") {
-    state.attackTeam = state.sidePickOwner;
-  } else if (state.sidePickOwner && state.side === "defense") {
-    state.attackTeam = state.sidePickOwner === "team1" ? "team2" : "team1";
-  } else {
-    state.attackTeam = "";
-  }
+  state.attackTeam = state.sidePickOwner
+    ? (state.side === "attack" ? state.sidePickOwner : (state.side === "defense" ? (state.sidePickOwner === "team1" ? "team2" : "team1") : ""))
+    : "";
 
   state.overlayTeamSwap = !!state.overlayTeamSwap;
   state.overlayRoleSwap = !!state.overlayRoleSwap;
 
-  const hasAttack = state.attackTeam === "team1" || state.attackTeam === "team2";
-  const standardLeftTeamId = hasAttack
-    ? (state.attackTeam === "team1" ? "team2" : "team1")
-    : "team1";
-  const currentLeftTeamId = state.overlayTeamSwap
-    ? (standardLeftTeamId === "team1" ? "team2" : "team1")
-    : standardLeftTeamId;
+  const hasAttack = ["team1", "team2"].includes(state.attackTeam);
+  const standardLeftTeamId = hasAttack && state.attackTeam === "team1" ? "team2" : "team1";
+  const currentLeftTeamId = state.overlayTeamSwap ? (standardLeftTeamId === "team1" ? "team2" : "team1") : standardLeftTeamId;
   state.layoutSwap = currentLeftTeamId === "team2";
 }
 
@@ -205,6 +293,10 @@ app.get("/match-start", (req, res) => {
   res.sendFile(path.join(ROOT_DIR, "public", "match-start.html"));
 });
 
+app.get("/intermission", (req, res) => {
+  res.sendFile(path.join(ROOT_DIR, "public", "intermission.html"));
+});
+
 let assets = {
   maps: scanMaps(ROOT_DIR),
   heroes: scanHeroes(ROOT_DIR)
@@ -234,6 +326,12 @@ function computeScore(history) {
   return score;
 }
 
+function applyAllMeta(data) {
+  applySidePickMeta(data);
+  applyBanPriorityMeta(data);
+  applyLayoutSwapMeta(data);
+}
+
 function buildBroadcastState({ settings, teams, state, history }) {
   refreshAssets();
   applyBanPriorityMeta({ settings, state, history });
@@ -256,11 +354,39 @@ function buildBroadcastState({ settings, teams, state, history }) {
 
 function buildOverlaySnapshot() {
   const snapshotData = loadAll();
-  applySidePickMeta(snapshotData);
-  applyBanPriorityMeta(snapshotData);
-  applyLayoutSwapMeta(snapshotData);
+  applyAllMeta(snapshotData);
   saveAll(snapshotData);
   return buildBroadcastState(snapshotData);
+}
+
+async function fetchYouTubeDurationSecondsByVideoId(videoId) {
+  if (typeof videoId !== "string" || !videoId.trim()) return null;
+
+  const safeVideoId = videoId.trim();
+  const watchUrl = `https://www.youtube.com/watch?v=${encodeURIComponent(safeVideoId)}&hl=ko&bpctr=9999999999&has_verified=1`;
+
+  const response = await fetch(watchUrl, {
+    method: "GET",
+    headers: {
+      "User-Agent": "Mozilla/5.0",
+      "Accept-Language": "ko,en-US;q=0.8,en;q=0.6"
+    }
+  });
+
+  if (!response.ok) return null;
+  const html = await response.text();
+
+  const lengthMatch = html.match(/"lengthSeconds":"(\d+)"/);
+  if (lengthMatch && Number.isFinite(Number(lengthMatch[1]))) {
+    return Math.max(1, Math.floor(Number(lengthMatch[1])));
+  }
+
+  const approxMatch = html.match(/"approxDurationMs":"(\d+)"/);
+  if (approxMatch && Number.isFinite(Number(approxMatch[1]))) {
+    return Math.max(1, Math.floor(Number(approxMatch[1]) / 1000));
+  }
+
+  return null;
 }
 
 app.get("/api/assets/maps", (req, res) => {
@@ -285,12 +411,9 @@ app.get("/api/teams", (req, res) => {
 
 app.get("/api/state", (req, res) => {
   const data = loadAll();
-  applySidePickMeta(data);
-  applyBanPriorityMeta(data);
-  applyLayoutSwapMeta(data);
+  applyAllMeta(data);
   saveAll(data);
-  const { state } = data;
-  res.json(state);
+  res.json(data.state);
 });
 
 app.get("/api/history", (req, res) => {
@@ -303,6 +426,23 @@ app.get("/api/overlay/snapshot", (req, res) => {
   res.json(snapshot);
 });
 
+app.get("/api/youtube/duration", async (req, res) => {
+  const videoId = typeof req.query?.videoId === "string" ? req.query.videoId.trim() : "";
+  if (!videoId) {
+    return res.status(400).json({ ok: false, message: "videoId 파라미터가 필요합니다." });
+  }
+
+  try {
+    const seconds = await fetchYouTubeDurationSecondsByVideoId(videoId);
+    if (!Number.isFinite(seconds) || seconds <= 0) {
+      return res.status(404).json({ ok: false, message: "YouTube 영상 길이를 찾지 못했습니다." });
+    }
+    return res.json({ ok: true, durationSeconds: seconds });
+  } catch (error) {
+    return res.status(500).json({ ok: false, message: error?.message || "YouTube 길이 조회 실패" });
+  }
+});
+
 app.post("/api/history", (req, res) => {
   const { history } = req.body;
   if (!Array.isArray(history)) {
@@ -310,9 +450,7 @@ app.post("/api/history", (req, res) => {
   }
   const data = loadAll();
   data.history = history;
-  applySidePickMeta(data);
-  applyBanPriorityMeta(data);
-  applyLayoutSwapMeta(data);
+  applyAllMeta(data);
   saveAll(data);
   res.json({ ok: true });
 });
@@ -350,10 +488,45 @@ app.post("/api/settings", (req, res) => {
     return res.status(400).json({ ok: false, message: "settings 데이터가 필요합니다." });
   }
   const data = loadAll();
-  data.settings = normalizeSettings(settings);
-  applySidePickMeta(data);
-  applyBanPriorityMeta(data);
-  applyLayoutSwapMeta(data);
+  const currentEtc = data.settings?.etc || {};
+  let mergedEtc = currentEtc;
+
+  if (settings.etc) {
+    const incomingEtc = settings.etc;
+    const candidateEtc = {
+      ...currentEtc,
+      ...incomingEtc,
+      players: incomingEtc.players
+        ? {
+            ...(currentEtc.players || {}),
+            ...incomingEtc.players
+          }
+        : (currentEtc.players || {})
+    };
+
+    const incomingRevision = Number(incomingEtc.revision);
+    const currentRevision = Number(currentEtc.revision) || 0;
+    const hasIncomingRevision = Number.isFinite(incomingRevision);
+
+    mergedEtc = !hasIncomingRevision || incomingRevision >= currentRevision
+      ? candidateEtc
+      : currentEtc;
+  }
+
+  const mergedSettings = {
+    ...data.settings,
+    ...settings,
+    etc: mergedEtc,
+    mapPool: settings.mapPool
+      ? {
+          ...(data.settings?.mapPool || {}),
+          ...settings.mapPool
+        }
+      : (data.settings?.mapPool || {})
+  };
+
+  data.settings = normalizeSettings(mergedSettings);
+  applyAllMeta(data);
   saveAll(data);
   res.json({ ok: true });
 });
@@ -365,9 +538,7 @@ app.post("/api/state", (req, res) => {
   }
   const data = loadAll();
   data.state = state;
-  applySidePickMeta(data);
-  applyBanPriorityMeta(data);
-  applyLayoutSwapMeta(data);
+  applyAllMeta(data);
   saveAll(data);
   res.json({ ok: true });
 });
@@ -418,9 +589,7 @@ wss.on("connection", (ws) => {
         const skipHeroBan = !!payload.skipHeroBan;
         const skipMapPick = !!payload.skipMapPick;
         const gameIndex = payload.gameIndex;
-        applySidePickMeta({ settings, state, history });
-        applyBanPriorityMeta({ settings, state, history });
-        applyLayoutSwapMeta({ state });
+        applyAllMeta({ settings, state, history });
 
         const mapLookup = buildMapLookup();
         const heroLookup = buildHeroLookup();

@@ -113,11 +113,11 @@
         height: 125%;
         object-fit: cover;
         object-position: center;
-        opacity: 1;
+        opacity: 0;
       }
 
       .hero-panel video.fade-in {
-        animation: hero-video-fade-in 800ms ease-out both;
+        animation: hero-video-fade-in 800ms ease-out forwards;
       }
 
       @keyframes hero-video-fade-in {
@@ -323,14 +323,18 @@
           el.classList.add("hidden");
           el.classList.remove("fade-in");
           el.removeAttribute("src");
+          el.style.opacity = "0";
           if (fallbackTextEl) fallbackTextEl.classList.remove("hidden");
           return;
         }
         const encoded = encodeURI(src);
         if (el.getAttribute("src") !== encoded) {
+          el.style.opacity = "0";
+          el.classList.remove("fade-in");
           el.setAttribute("src", encoded);
           el.load();
-          el.addEventListener("loadeddata", () => {
+          el.addEventListener("canplaythrough", () => {
+            el.classList.remove("hidden");
             el.classList.remove("fade-in");
             void el.offsetWidth;
             el.classList.add("fade-in");
@@ -357,7 +361,6 @@
             replayPromise.catch(() => {});
           }
         };
-        el.classList.remove("hidden");
         if (fallbackTextEl) fallbackTextEl.classList.add("hidden");
         const playPromise = el.play();
         if (playPromise && typeof playPromise.catch === "function") {
@@ -365,6 +368,7 @@
         }
         el.onerror = () => {
           el.classList.add("hidden");
+          el.style.opacity = "0";
           if (fallbackTextEl) fallbackTextEl.classList.remove("hidden");
         };
       }

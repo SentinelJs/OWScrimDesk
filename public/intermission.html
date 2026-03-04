@@ -1,0 +1,899 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Intermission Overlay</title>
+  <style>
+    :root {
+      --left-col-width: 19.7916667vw;
+      --teams-row-height: 19.4444444vh;
+      --media-row-height: calc(100vh - var(--teams-row-height));
+
+      --surface: rgba(12, 14, 20, 0.95);
+      --surface-soft: rgba(23, 27, 38, 0.92);
+      --border: rgba(255, 255, 255, 0.1);
+      --accent: #dcb043;
+      --text: #ffffff;
+      --subtext: #d2d8e3;
+      --team-name-size: 90px;
+      --team-name-inline-padding: 6px;
+      --team-name-no-logo-offset: 14px;
+      --score-name-size: 33px;
+      --score-size: 56px;
+      --timer-size: 134px;
+      --match-name-size: 44px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    @font-face {
+      font-family: "Koverwatch";
+      src: url("/fonts/koverwatch.otf") format("opentype");
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+      font-family: "Koverwatch", "Pretendard", "Noto Sans KR", system-ui, sans-serif;
+      color: var(--text);
+    }
+
+    .stage {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background: transparent;
+    }
+
+    .loading-screen {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 20;
+    }
+
+    .stage.loading > .canvas {
+      visibility: hidden;
+    }
+
+    .loading-screen.hidden {
+      display: none;
+    }
+
+    .canvas {
+      width: 100vw;
+      height: 100vh;
+      display: grid;
+      grid-template-columns: var(--left-col-width) minmax(0, 1fr);
+      background: rgba(0, 0, 0, 0.2);
+      border: 2px solid rgba(255, 255, 255, 0.12);
+      overflow: hidden;
+    }
+
+    .left-col {
+      background: var(--surface);
+      border-right: 2px solid var(--border);
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+    }
+
+    .panel {
+      background: var(--surface-soft);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .timer-panel {
+      display: grid;
+      place-items: center;
+      align-content: center;
+      text-align: center;
+      gap: 10px;
+      min-height: 230px;
+    }
+
+    .timer-title {
+      color: var(--accent);
+      font-size: 34px;
+      letter-spacing: 0.03em;
+      text-align: center;
+    }
+
+    .timer-value {
+      font-size: var(--timer-size);
+      text-align: center;
+      line-height: 0.95;
+      letter-spacing: 0.06em;
+    }
+
+    .score-line {
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr) auto auto minmax(0, 1fr) 42px;
+      align-items: center;
+      gap: 8px;
+      min-height: 76px;
+    }
+
+    .score-logo {
+      width: 42px;
+      height: 42px;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+
+    .score-logo.hidden {
+      visibility: hidden;
+    }
+
+    .score-name-wrap {
+      min-width: 0;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+    }
+
+    .score-name {
+      font-size: var(--score-name-size);
+      line-height: 1;
+      white-space: nowrap;
+      transform-origin: left center;
+      padding-inline: 4px;
+    }
+
+    .score-line .right-wrap {
+      justify-content: flex-end;
+    }
+
+    .score-line .right-wrap .score-name {
+      transform-origin: right center;
+      text-align: right;
+    }
+
+    .score-v {
+      font-size: var(--score-size);
+      line-height: 1;
+      color: var(--accent);
+      text-align: center;
+      min-width: 32px;
+    }
+
+    .match-brand {
+      height: 100%;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      gap: 10px;
+    }
+
+    .match-brand-logo {
+      width: 180px;
+      height: 180px;
+      object-fit: contain;
+      display: none;
+    }
+
+    .match-brand-name {
+      font-size: var(--match-name-size);
+      color: var(--text);
+      line-height: 1.08;
+      max-width: 100%;
+      display: none;
+      padding-inline: 8px;
+      white-space: pre-wrap;
+      word-break: keep-all;
+    }
+
+    .match-brand.logo-only .match-brand-logo,
+    .match-brand.both .match-brand-logo {
+      display: block;
+    }
+
+    .match-brand.name-only .match-brand-name,
+    .match-brand.both .match-brand-name {
+      display: block;
+    }
+
+    .right-col {
+      display: grid;
+      grid-template-rows: var(--media-row-height) var(--teams-row-height);
+      background: rgba(8, 10, 14, 0.88);
+    }
+
+    .media-zone {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-bottom: 2px solid var(--border);
+      background: #0b0d12;
+      overflow: hidden;
+    }
+
+    .media-placeholder,
+    .media-image,
+    .media-video {
+      width: 100%;
+      height: 100%;
+    }
+
+    .media-placeholder {
+      display: grid;
+      place-items: center;
+      color: var(--subtext);
+      font-size: 42px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #0f1218, #1a2030);
+    }
+
+    .media-image {
+      object-fit: cover;
+      display: none;
+    }
+
+    .media-video {
+      border: none;
+      display: none;
+      background: #000;
+    }
+
+    .teams-zone {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      height: 100%;
+    }
+
+    .team-slot {
+      border-right: 1px solid var(--border);
+      display: grid;
+      place-items: center;
+      background: rgba(15, 17, 24, 0.92);
+      padding: 8px 20px;
+    }
+
+    .team-slot:last-child {
+      border-right: none;
+    }
+
+    .team-combo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      width: auto;
+      max-width: 100%;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .team-slot.team2 .team-combo {
+      flex-direction: row-reverse;
+    }
+
+    .team-logo {
+      width: 86px;
+      height: 86px;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+
+    .team-logo.hidden {
+      display: none;
+    }
+
+    .team-name-wrap {
+      min-width: 0;
+      flex: 0 1 auto;
+      max-width: calc(100% - 96px);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .team-name {
+      font-size: var(--team-name-size);
+      line-height: 1;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      transform-origin: left center;
+      padding-inline: var(--team-name-inline-padding);
+    }
+
+    .team-slot.team2 .team-name {
+      transform-origin: right center;
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+  <main class="stage loading" id="overlay">
+    <div class="loading-screen" id="loadingScreen">LOADING...</div>
+    <section class="canvas" id="canvas">
+      <aside class="left-col">
+        <section class="panel timer-panel">
+          <div class="timer-title">쉬는시간</div>
+          <div class="timer-value" id="timerValue">00:00</div>
+        </section>
+
+        <section class="panel">
+          <div class="score-line">
+            <img class="score-logo" id="scoreTeam1Logo" alt="Team 1 logo" />
+            <div class="score-name-wrap" id="scoreTeam1Wrap">
+              <div class="score-name" id="scoreTeam1Name">TEAM 1</div>
+            </div>
+            <div class="score-v" id="scoreTeam1">0</div>
+            <div class="score-v" id="scoreTeam2">0</div>
+            <div class="score-name-wrap right-wrap" id="scoreTeam2Wrap">
+              <div class="score-name" id="scoreTeam2Name">TEAM 2</div>
+            </div>
+            <img class="score-logo" id="scoreTeam2Logo" alt="Team 2 logo" />
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="match-brand" id="matchBrand">
+            <img class="match-brand-logo" id="matchLogo" alt="Match logo" />
+            <div class="match-brand-name" id="matchName"></div>
+          </div>
+        </section>
+      </aside>
+
+      <section class="right-col">
+        <section class="media-zone" id="mediaZone">
+          <div class="media-placeholder" id="mediaPlaceholder">BREAK CONTENT</div>
+          <img class="media-image" id="mediaImage" alt="Break image" />
+          <iframe class="media-video" id="mediaVideo" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+        </section>
+
+        <section class="teams-zone">
+          <article class="team-slot team1" id="team1Slot">
+            <div class="team-combo" id="team1Combo">
+              <img class="team-logo" id="team1Logo" alt="Team 1 logo" />
+              <div class="team-name-wrap" id="team1NameWrap">
+                <div class="team-name" id="team1Name">TEAM 1</div>
+              </div>
+            </div>
+          </article>
+          <article class="team-slot team2" id="team2Slot">
+            <div class="team-combo" id="team2Combo">
+              <img class="team-logo" id="team2Logo" alt="Team 2 logo" />
+              <div class="team-name-wrap" id="team2NameWrap">
+                <div class="team-name" id="team2Name">TEAM 2</div>
+              </div>
+            </div>
+          </article>
+        </section>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const elements = {
+      overlay: document.getElementById("overlay"),
+      loadingScreen: document.getElementById("loadingScreen"),
+      timerValue: document.getElementById("timerValue"),
+      scoreTeam1Logo: document.getElementById("scoreTeam1Logo"),
+      scoreTeam2Logo: document.getElementById("scoreTeam2Logo"),
+      scoreTeam1Name: document.getElementById("scoreTeam1Name"),
+      scoreTeam2Name: document.getElementById("scoreTeam2Name"),
+      scoreTeam1Wrap: document.getElementById("scoreTeam1Wrap"),
+      scoreTeam2Wrap: document.getElementById("scoreTeam2Wrap"),
+      scoreTeam1: document.getElementById("scoreTeam1"),
+      scoreTeam2: document.getElementById("scoreTeam2"),
+      matchBrand: document.getElementById("matchBrand"),
+      matchLogo: document.getElementById("matchLogo"),
+      matchName: document.getElementById("matchName"),
+      mediaPlaceholder: document.getElementById("mediaPlaceholder"),
+      mediaImage: document.getElementById("mediaImage"),
+      mediaVideo: document.getElementById("mediaVideo"),
+      team1Slot: document.getElementById("team1Slot"),
+      team2Slot: document.getElementById("team2Slot"),
+      team1Logo: document.getElementById("team1Logo"),
+      team2Logo: document.getElementById("team2Logo"),
+      team1Name: document.getElementById("team1Name"),
+      team2Name: document.getElementById("team2Name"),
+      team1NameWrap: document.getElementById("team1NameWrap"),
+      team2NameWrap: document.getElementById("team2NameWrap")
+    };
+
+    const fitPairs = [
+      { text: elements.team1Name, wrap: elements.team1NameWrap },
+      { text: elements.team2Name, wrap: elements.team2NameWrap },
+      { text: elements.scoreTeam1Name, wrap: elements.scoreTeam1Wrap },
+      { text: elements.scoreTeam2Name, wrap: elements.scoreTeam2Wrap }
+    ];
+
+    let timerState = {
+      configSeconds: 0,
+      endAt: 0,
+      rafId: 0
+    };
+
+    let mediaTickTimer = 0;
+    let latestEtc = null;
+    let youtubeCurrentTime = NaN;
+    let youtubeCurrentVideoId = "";
+    let youtubeCurrentContentId = "";
+    let youtubeTimePollTimer = 0;
+    let youtubeLastTimeAt = 0;
+
+    function setLoading(isLoading, text = "LOADING...") {
+      elements.overlay.classList.toggle("loading", isLoading);
+      elements.loadingScreen.textContent = text;
+      elements.loadingScreen.classList.toggle("hidden", !isLoading);
+    }
+
+    async function loadInitialSnapshot() {
+      const response = await fetch("/api/overlay/snapshot", { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error("초기 데이터를 불러오지 못했습니다.");
+      }
+      return response.json();
+    }
+
+    function formatTimer(totalSeconds) {
+      const safe = Math.max(0, Math.floor(totalSeconds));
+      const minutes = Math.floor(safe / 60);
+      const seconds = safe % 60;
+      return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+    }
+
+    function stopTimerLoop() {
+      if (timerState.rafId) cancelAnimationFrame(timerState.rafId);
+      timerState.rafId = 0;
+    }
+
+    function tickTimer() {
+      const left = Math.max(0, Math.ceil((timerState.endAt - Date.now()) / 1000));
+      elements.timerValue.textContent = formatTimer(left);
+      if (left > 0) {
+        timerState.rafId = requestAnimationFrame(tickTimer);
+      }
+    }
+
+    function setTimer(minutes, seconds) {
+      const total = Math.max(0, Number(minutes || 0) * 60 + Number(seconds || 0));
+      if (timerState.configSeconds === total && timerState.endAt > Date.now()) return;
+      timerState.configSeconds = total;
+      stopTimerLoop();
+      timerState.endAt = Date.now() + total * 1000;
+      elements.timerValue.textContent = formatTimer(total);
+      if (total > 0) {
+        timerState.rafId = requestAnimationFrame(tickTimer);
+      }
+    }
+
+    function setLogo(img, src, slot) {
+      if (!src) {
+        img.removeAttribute("src");
+        img.classList.add("hidden");
+        slot.classList.add("no-logo");
+        return;
+      }
+      img.src = encodeURI(src);
+      img.classList.remove("hidden");
+      slot.classList.remove("no-logo");
+    }
+
+    function fitTextScale(el, wrap) {
+      if (!el || !wrap) return;
+      el.style.transform = "none";
+      requestAnimationFrame(() => {
+        const containerWidth = wrap.clientWidth;
+        const textWidth = el.scrollWidth;
+        if (textWidth > containerWidth && containerWidth > 0) {
+          const scale = containerWidth / textWidth;
+          el.style.transform = `scale(${scale})`;
+        }
+      });
+    }
+
+    function fitAllText() {
+      fitPairs.forEach(({ text, wrap }) => fitTextScale(text, wrap));
+    }
+
+    function toYoutubeEmbed(url) {
+      const id = extractYouTubeVideoId(url);
+      if (!id) return "";
+      return `https://www.youtube.com/embed/${id}?autoplay=1&mute=0&loop=1&playlist=${id}&controls=0&rel=0&enablejsapi=1`;
+    }
+
+    function extractYouTubeVideoId(url) {
+      if (!url) return "";
+      try {
+        const parsed = new URL(url);
+        const host = parsed.hostname.replace("www.", "").toLowerCase();
+
+        if (host === "youtu.be") {
+          return parsed.pathname.split("/").filter(Boolean)[0] || "";
+        }
+
+        if (host.endsWith("youtube.com")) {
+          const direct = parsed.searchParams.get("v");
+          if (direct) return direct;
+
+          const segments = parsed.pathname.split("/").filter(Boolean);
+          const index = segments.findIndex((value) => value === "embed" || value === "shorts" || value === "live");
+          if (index >= 0 && segments[index + 1]) {
+            return segments[index + 1];
+          }
+        }
+      } catch {}
+      return "";
+    }
+
+    function isYouTubeMessageOrigin(origin) {
+      if (typeof origin !== "string") return false;
+      return origin.startsWith("https://www.youtube.com")
+        || origin.startsWith("https://youtube.com")
+        || origin.startsWith("https://www.youtube-nocookie.com")
+        || origin.startsWith("https://youtube-nocookie.com");
+    }
+
+    function resetYoutubePlaybackState(videoId = "", contentId = "") {
+      youtubeCurrentVideoId = videoId;
+      youtubeCurrentContentId = contentId;
+      youtubeCurrentTime = NaN;
+      youtubeLastTimeAt = 0;
+    }
+
+    function sendYoutubeCommand(func, args = []) {
+      const frame = elements.mediaVideo;
+      if (!frame || !frame.contentWindow) return;
+      frame.contentWindow.postMessage(
+        JSON.stringify({
+          event: "command",
+          func,
+          args
+        }),
+        "*"
+      );
+    }
+
+    function stopYoutubeTimePolling() {
+      if (youtubeTimePollTimer) {
+        clearInterval(youtubeTimePollTimer);
+        youtubeTimePollTimer = 0;
+      }
+    }
+
+    function startYoutubeTimePolling() {
+      stopYoutubeTimePolling();
+      youtubeTimePollTimer = setInterval(() => {
+        sendYoutubeCommand("getCurrentTime");
+      }, 500);
+      sendYoutubeCommand("getCurrentTime");
+    }
+
+    function handleYoutubeMessage(event) {
+      if (!isYouTubeMessageOrigin(event.origin)) return;
+
+      let payload = event.data;
+      if (typeof payload === "string") {
+        try {
+          payload = JSON.parse(payload);
+        } catch {
+          return;
+        }
+      }
+
+      const current = Number(payload?.info?.currentTime);
+      if (Number.isFinite(current) && current >= 0) {
+        youtubeCurrentTime = current;
+        youtubeLastTimeAt = Date.now();
+      }
+    }
+
+    function applyYoutubeVolume50() {
+      sendYoutubeCommand("unMute");
+      sendYoutubeCommand("setVolume", [20]);
+      sendYoutubeCommand("playVideo");
+    }
+
+    function normalizeBreakContents(etc) {
+      if (Array.isArray(etc?.breakContents) && etc.breakContents.length > 0) {
+        return etc.breakContents
+          .slice()
+          .sort((a, b) => Number(a?.order || 0) - Number(b?.order || 0))
+          .map((item, index) => ({
+            id: typeof item?.id === "string" ? item.id : `content-${index + 1}`,
+            title: typeof item?.title === "string" ? item.title : `콘텐츠 ${index + 1}`,
+            type: item?.type === "image" ? "image" : "youtube",
+            url: typeof item?.url === "string" ? item.url : "",
+            durationSeconds: Number.isFinite(Number(item?.durationSeconds))
+              ? Math.max(1, Math.floor(Number(item.durationSeconds)))
+              : 30,
+            enabled: item?.enabled !== false,
+            order: Number.isFinite(Number(item?.order)) ? Number(item.order) : index
+          }));
+      }
+
+      if (typeof etc?.breakContentUrl === "string" && etc.breakContentUrl.trim()) {
+        return [{
+          id: "legacy-1",
+          title: "기본 콘텐츠",
+          type: etc?.breakContentType === "image" ? "image" : "youtube",
+          url: etc.breakContentUrl,
+          durationSeconds: Number.isFinite(Number(etc?.breakDurationSeconds))
+            ? Math.max(1, Math.floor(Number(etc.breakDurationSeconds)))
+            : 30,
+          enabled: true,
+          order: 0
+        }];
+      }
+
+      return [];
+    }
+
+    function getPlayableContents(contents) {
+      return contents.filter((item) => item.enabled && String(item.url || "").trim());
+    }
+
+    function getDurationSeconds(item) {
+      const value = Number(item?.durationSeconds);
+      if (!Number.isFinite(value)) return 30;
+      return Math.max(1, Math.floor(value));
+    }
+
+    function computeRotationState(etc) {
+      const contents = normalizeBreakContents(etc);
+      const playable = getPlayableContents(contents);
+      if (playable.length === 0) return null;
+
+      const selectedId = typeof etc?.selectedBreakContentId === "string" ? etc.selectedBreakContentId : "";
+      const selectedIndex = playable.findIndex((item) => item.id === selectedId);
+      const baseIndex = selectedIndex >= 0 ? selectedIndex : 0;
+
+      const ordered = [
+        ...playable.slice(baseIndex),
+        ...playable.slice(0, baseIndex)
+      ];
+
+      if (ordered.length === 1) {
+        return {
+          current: ordered[0],
+          remainingMs: getDurationSeconds(ordered[0]) * 1000
+        };
+      }
+
+      const totalSeconds = ordered.reduce((sum, item) => sum + getDurationSeconds(item), 0);
+      if (totalSeconds <= 0) {
+        return {
+          current: ordered[0],
+          remainingMs: 30000
+        };
+      }
+
+      const seed = Number.isFinite(Number(etc?.rotationSeed ?? etc?.autoRotateSeed))
+        ? Number(etc.rotationSeed ?? etc.autoRotateSeed)
+        : Date.now();
+      const elapsedSeconds = Math.floor(Math.max(0, Date.now() - seed) / 1000) % totalSeconds;
+      let cursor = 0;
+
+      for (const item of ordered) {
+        const duration = getDurationSeconds(item);
+        const nextCursor = cursor + duration;
+        if (elapsedSeconds < nextCursor) {
+          return {
+            current: item,
+            remainingMs: (nextCursor - elapsedSeconds) * 1000
+          };
+        }
+        cursor = nextCursor;
+      }
+
+      return {
+        current: ordered[0],
+        remainingMs: getDurationSeconds(ordered[0]) * 1000
+      };
+    }
+
+    function scheduleNextMediaTick(etc) {
+      if (mediaTickTimer) {
+        clearTimeout(mediaTickTimer);
+        mediaTickTimer = 0;
+      }
+
+      const state = computeRotationState(etc);
+      if (!state) return;
+
+      const contents = normalizeBreakContents(etc);
+      const playable = getPlayableContents(contents);
+      if (playable.length <= 1) return;
+
+      let nextTickMs = Math.max(250, Number(state.remainingMs || 1000));
+      if (state.current?.type === "youtube" && state.current?.id === youtubeCurrentContentId) {
+        const durationSeconds = getDurationSeconds(state.current);
+        if (Number.isFinite(youtubeCurrentTime)) {
+          const remainingByPlayerMs = Math.max(0, (durationSeconds - youtubeCurrentTime) * 1000);
+          nextTickMs = Math.max(120, Math.max(nextTickMs, remainingByPlayerMs));
+        } else {
+          nextTickMs = Math.max(nextTickMs, 1000);
+        }
+      }
+
+      mediaTickTimer = setTimeout(() => {
+        if (!latestEtc) return;
+        renderMedia(latestEtc);
+      }, nextTickMs + 30);
+    }
+
+    function renderMedia(etc) {
+      latestEtc = etc || {};
+      const state = computeRotationState(latestEtc);
+      const current = state?.current || null;
+      const type = current?.type === "image" ? "image" : "youtube";
+      const rawUrl = (current?.url || "").trim();
+
+      elements.mediaImage.style.display = "none";
+      elements.mediaVideo.style.display = "none";
+      elements.mediaPlaceholder.style.display = "grid";
+      elements.mediaVideo.removeAttribute("src");
+      elements.mediaImage.removeAttribute("src");
+
+      if (!rawUrl) {
+        stopYoutubeTimePolling();
+        resetYoutubePlaybackState();
+        scheduleNextMediaTick(latestEtc);
+        return;
+      }
+
+      if (type === "image") {
+        stopYoutubeTimePolling();
+        resetYoutubePlaybackState();
+        elements.mediaImage.src = encodeURI(rawUrl);
+        elements.mediaImage.style.display = "block";
+        elements.mediaPlaceholder.style.display = "none";
+        scheduleNextMediaTick(latestEtc);
+        return;
+      }
+
+      const embed = toYoutubeEmbed(rawUrl);
+      const videoId = extractYouTubeVideoId(rawUrl);
+      if (!embed) {
+        stopYoutubeTimePolling();
+        resetYoutubePlaybackState();
+        scheduleNextMediaTick(latestEtc);
+        return;
+      }
+
+      const isNewVideo = elements.mediaVideo.src !== embed;
+      const isNewContent = youtubeCurrentContentId !== (current?.id || "");
+      elements.mediaVideo.src = embed;
+      elements.mediaVideo.style.display = "block";
+      elements.mediaPlaceholder.style.display = "none";
+
+      if (isNewVideo || isNewContent || youtubeCurrentVideoId !== videoId) {
+        resetYoutubePlaybackState(videoId, current?.id || "");
+      }
+
+      startYoutubeTimePolling();
+
+      if (isNewVideo) {
+        elements.mediaVideo.onload = () => {
+          applyYoutubeVolume50();
+          setTimeout(applyYoutubeVolume50, 400);
+          setTimeout(applyYoutubeVolume50, 1200);
+        };
+      } else {
+        applyYoutubeVolume50();
+      }
+
+      scheduleNextMediaTick(latestEtc);
+    }
+
+    function renderMatchBrand(settings) {
+      const logo = (settings?.matchLogo || "").trim();
+      const name = (settings?.matchName || "").trim();
+
+      elements.matchBrand.classList.remove("both", "logo-only", "name-only", "none");
+
+      if (logo) {
+        elements.matchLogo.src = logo;
+      } else {
+        elements.matchLogo.removeAttribute("src");
+      }
+      elements.matchName.textContent = name;
+
+      if (logo && name) {
+        elements.matchBrand.classList.add("both");
+      } else if (logo) {
+        elements.matchBrand.classList.add("logo-only");
+      } else if (name) {
+        elements.matchBrand.classList.add("name-only");
+      } else {
+        elements.matchBrand.classList.add("none");
+      }
+    }
+
+    function renderTeams(teams, score) {
+      const team1 = teams?.team1 || {};
+      const team2 = teams?.team2 || {};
+
+      elements.team1Name.textContent = team1.name || "TEAM 1";
+      elements.team2Name.textContent = team2.name || "TEAM 2";
+      elements.scoreTeam1Name.textContent = team1.name || "TEAM 1";
+      elements.scoreTeam2Name.textContent = team2.name || "TEAM 2";
+
+      setLogo(elements.team1Logo, team1.logo, elements.team1Slot);
+      setLogo(elements.team2Logo, team2.logo, elements.team2Slot);
+      setLogo(elements.scoreTeam1Logo, team1.logo, elements.team1Slot);
+      setLogo(elements.scoreTeam2Logo, team2.logo, elements.team2Slot);
+
+      elements.scoreTeam1.textContent = String(score?.team1 || 0);
+      elements.scoreTeam2.textContent = String(score?.team2 || 0);
+    }
+
+    function render(payload) {
+      const settings = payload?.settings || {};
+      const etc = settings?.etc || {};
+      const teams = payload?.teams || {};
+      const score = payload?.score || { team1: 0, team2: 0 };
+
+      setTimer(etc.breakMinutes, etc.breakSeconds);
+      renderTeams(teams, score);
+      renderMatchBrand(settings);
+      renderMedia(etc);
+      fitAllText();
+    }
+
+    function handleOverlayUpdate(payload) {
+      render(payload);
+    }
+
+    function openSocket() {
+      const ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}`);
+
+      ws.onopen = () => ws.send(JSON.stringify({ type: "overlay:hello" }));
+
+      ws.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          if (message.type === "overlay:update") handleOverlayUpdate(message.payload);
+        } catch {}
+      };
+
+      ws.onclose = () => setTimeout(openSocket, 1500);
+    }
+
+    window.addEventListener("resize", () => {
+      fitAllText();
+    });
+
+    window.addEventListener("message", handleYoutubeMessage);
+
+    async function init() {
+      setLoading(true, "LOADING...");
+      try {
+        const snapshot = await loadInitialSnapshot();
+        render(snapshot);
+        setLoading(false);
+        openSocket();
+      } catch {
+        setLoading(true, "DATA LOADING...");
+        setTimeout(init, 1200);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

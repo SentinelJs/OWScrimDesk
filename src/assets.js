@@ -16,8 +16,11 @@ const HERO_ROLE_FOLDERS = {
 };
 
 function normalizeName(fileName) {
-  const base = fileName.replace(/\.[^/.]+$/, "");
-  return base.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+  return fileName
+    .replace(/\.[^/.]+$/, "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function slugify(value) {
@@ -28,64 +31,86 @@ function slugify(value) {
     .replace(/^-+|-+$/g, "");
 }
 
-function scanMaps(rootDir) {
-  const maps = [];
+function scanFilesInFolders(baseDirs, folderAliases, createItem) {
+  const items = [];
   const seen = new Set();
-  const mapRootCandidates = [
-    path.join(rootDir, "img", "maps"),
-    path.join(rootDir, "img")
-  ];
-
-  for (const [modeKey, folderAliases] of Object.entries(MAP_MODE_FOLDERS)) {
-    for (const baseRoot of mapRootCandidates) {
-      if (!fs.existsSync(baseRoot)) continue;
-      for (const folderName of folderAliases) {
-        const dir = path.join(baseRoot, folderName);
-        if (!fs.existsSync(dir)) continue;
-        const files = fs.readdirSync(dir).filter((file) => file.toLowerCase().endsWith(".png"));
-        for (const file of files) {
-          const name = normalizeName(file);
-          const id = slugify(name);
-          const key = `${modeKey}:${id}`;
-          if (seen.has(key)) continue;
-          seen.add(key);
-          maps.push({
-            id,
-            name,
-            mode: modeKey,
-            image: `/img/${baseRoot.endsWith("maps") ? "maps/" : ""}${folderName}/${file}`
-          });
-        }
-      }
-    }
-  }
-
-  return maps;
-}
-
-function scanHeroes(rootDir) {
-  const heroes = [];
-  const heroRoot = path.join(rootDir, "img", "hero");
-  if (!fs.existsSync(heroRoot)) return heroes;
-
-  for (const [roleKey, folderAliases] of Object.entries(HERO_ROLE_FOLDERS)) {
+  
+  for (const baseDir of baseDirs) {
+    if (!fs.existsSync(baseDir)) continue;
+    
     for (const folderName of folderAliases) {
-      const dir = path.join(heroRoot, folderName);
+      const dir = path.join(baseDir, folderName);
       if (!fs.existsSync(dir)) continue;
+      
       const files = fs.readdirSync(dir).filter((file) => file.toLowerCase().endsWith(".png"));
       for (const file of files) {
         const name = normalizeName(file);
         const id = slugify(name);
-        heroes.push({
+        const item = createItem(id, name, file, folderName, baseDir);
+        const key = item.key;
+        
+        if (!seen.has(key)) {
+          seen.add(key);
+          items.push(item.data);
+        }
+      }
+    }
+  }
+  
+  return items;
+}
+
+function scanMaps(rootDir) {
+  const mapRootCandidates = [
+    path.join(rootDir, "img", "maps"),
+    path.join(rootDir, "img")
+  ];
+  
+  const maps = [];
+  
+  for (const [modeKey, folderAliases] of Object.entries(MAP_MODE_FOLDERS)) {
+    const items = scanFilesInFolders(
+      mapRootCandidates,
+      folderAliases,
+      (id, name, file, folderName, baseDir) => ({
+        key: `${modeKey}:${id}`,
+        data: {
+          id,
+          name,
+          mode: modeKey,
+          image: `/img/${baseDir.endsWith("maps") ? "maps/" : ""}${folderName}/${file}`
+        }
+      })
+    );
+    maps.push(...items);
+  }
+  
+  return maps;
+}
+
+function scanHeroes(rootDir) {
+  const heroRoot = path.join(rootDir, "img", "hero");
+  if (!fs.existsSync(heroRoot)) return [];
+  
+  const heroes = [];
+  
+  for (const [roleKey, folderAliases] of Object.entries(HERO_ROLE_FOLDERS)) {
+    const items = scanFilesInFolders(
+      [heroRoot],
+      folderAliases,
+      (id, name, file, folderName) => ({
+        key: `${roleKey}:${id}`,
+        data: {
           id,
           name,
           role: roleKey,
           image: `/img/hero/${folderName}/${file}`
-        });
-      }
-    }
+        }
+      })
+    );
+    heroes.push(...items);
   }
-
+  
   return heroes;
 }
 

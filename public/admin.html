@@ -16,6 +16,7 @@
       <button data-tab="ingame">In-Game</button>
       <button data-tab="history">History</button>
       <button data-tab="match">Match Info</button>
+      <button data-tab="etc">ETC</button>
     </nav>
     <div class="status" id="wsStatus">WS 연결중...</div>
   </header>
@@ -233,6 +234,61 @@
       <div class="actions-row">
         <button class="primary" id="saveMatch">저장</button>
         <button class="danger" id="resetAll">전체 초기화</button>
+      </div>
+    </section>
+
+    <section id="tab-etc" class="tab">
+      <div class="section-header">
+        <h2>ETC</h2>
+        <span class="section-sub">후원사 · 쉬는시간 오버레이 · 팀 선수 정보(껍데기) 설정</span>
+      </div>
+      <div class="tab-toolbar">
+        <button class="secondary" id="refreshEtc">최신 정보 불러오기</button>
+      </div>
+      <div class="grid two">
+        <div class="card">
+          <h3>방송/쉬는시간 설정</h3>
+          <label>후원사명
+            <input id="etc-sponsor" type="text" autocomplete="off" placeholder="예: ACME Esports" />
+          </label>
+          <h3 style="margin-top:14px">쉬는시간 콘텐츠 목록</h3>
+          <table class="history-table etc-content-table" id="etcContentTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>이름</th>
+                <th>타입</th>
+                <th>URL</th>
+                <th>지속시간</th>
+                <th>활성</th>
+                <th>현재</th>
+                <th>삭제</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <div class="actions-row" style="margin-top:10px">
+            <button class="secondary" type="button" id="etcContentAdd">콘텐츠 추가</button>
+            <button class="secondary" type="button" id="etcContentPrev">이전 콘텐츠</button>
+            <button class="secondary" type="button" id="etcContentNext">다음 콘텐츠</button>
+          </div>
+          <div class="grid two etc-timer-grid">
+            <label>쉬는시간 분
+              <input id="etc-break-minutes" type="number" min="0" max="180" step="1" />
+            </label>
+            <label>쉬는시간 초
+              <input id="etc-break-seconds" type="number" min="0" max="59" step="1" />
+            </label>
+          </div>
+          <div class="muted" id="etc-preview-note">쉬는시간 화면 경로: <code>/intermission</code></div>
+        </div>
+        <div class="card">
+          <h3>팀 선수 정보 (껍데기)</h3>
+          <div class="etc-player-shell" id="etc-player-shell"></div>
+        </div>
+      </div>
+      <div class="actions-row">
+        <button class="primary" id="saveEtc">저장</button>
       </div>
     </section>
   </main>

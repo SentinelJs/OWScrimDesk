@@ -238,27 +238,4 @@ async function extractDominantColor(input, options = {}) {
   return { ok: true, dominantHex, palette };
 }
 
-// ---- example usage ----
-if (require.main === module) {
-  (async () => {
-    // 1) 파일 경로
-    // const res = await extractDominantColor("./logo.png", { returnPalette: true });
-
-    // 2) base64 (data URL 포함 가능)
-    // const b64 = "data:image/png;base64,iVBORw0K...";
-    // const res = await extractDominantColor(b64, { returnPalette: true });
-
-    // 3) Buffer
-    // const fs = require("fs");
-    // const buf = fs.readFileSync("./logo.png");
-    // const res = await extractDominantColor(buf, { returnPalette: true });
-
-    // 데모(사용 시 위 1/2/3 중 하나 선택)
-    console.log("이 파일을 모듈로 사용하십시오. (require.main 데모 코드는 주석 해제 후 사용)");
-  })().catch((e) => {
-    console.error(e);
-    process.exit(1);
-  });
-}
-
 module.exports = { extractDominantColor };
