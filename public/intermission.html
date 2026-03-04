@@ -424,7 +424,7 @@
     let timerState = {
       configSeconds: 0,
       endAt: 0,
-      rafId: 0
+      intervalId: 0
     };
 
     let mediaTickTimer = 0;
@@ -433,9 +433,10 @@
     let youtubeCurrentVideoId = "";
     let youtubeCurrentContentId = "";
     let youtubeTimePollTimer = 0;
-    let youtubeLastTimeAt = 0;
-    let pendingInitialYoutubeSeekSeconds = NaN;
-    let hasAppliedInitialYoutubeSeek = false;
+    let youtubePollingContentId = "";
+    let localRotationSignature = "";
+    let localRotationIndex = 0;
+    let localRotationStartedAt = 0;
 
     function setLoading(isLoading, text = "LOADING...") {
       elements.overlay.classList.toggle("loading", isLoading);
@@ -459,15 +460,15 @@
     }
 
     function stopTimerLoop() {
-      if (timerState.rafId) cancelAnimationFrame(timerState.rafId);
-      timerState.rafId = 0;
+      if (timerState.intervalId) clearInterval(timerState.intervalId);
+      timerState.intervalId = 0;
     }
 
     function tickTimer() {
       const left = Math.max(0, Math.ceil((timerState.endAt - Date.now()) / 1000));
       elements.timerValue.textContent = formatTimer(left);
-      if (left > 0) {
-        timerState.rafId = requestAnimationFrame(tickTimer);
+      if (left <= 0) {
+        stopTimerLoop();
       }
     }
 
@@ -479,37 +480,43 @@
       timerState.endAt = Date.now() + total * 1000;
       elements.timerValue.textContent = formatTimer(total);
       if (total > 0) {
-        timerState.rafId = requestAnimationFrame(tickTimer);
+        timerState.intervalId = setInterval(tickTimer, 1000);
+        tickTimer();
       }
     }
 
-    function setLogo(img, src, slot) {
+    function setLogo(img, src) {
       if (!src) {
         img.removeAttribute("src");
         img.classList.add("hidden");
-        slot.classList.add("no-logo");
         return;
       }
-      img.src = encodeURI(src);
+      if (img.src !== src) {
+        img.src = src;
+      }
       img.classList.remove("hidden");
-      slot.classList.remove("no-logo");
     }
+
+    let fitTextScheduled = false;
 
     function fitTextScale(el, wrap) {
       if (!el || !wrap) return;
       el.style.transform = "none";
-      requestAnimationFrame(() => {
-        const containerWidth = wrap.clientWidth;
-        const textWidth = el.scrollWidth;
-        if (textWidth > containerWidth && containerWidth > 0) {
-          const scale = containerWidth / textWidth;
-          el.style.transform = `scale(${scale})`;
-        }
-      });
+      const containerWidth = wrap.clientWidth;
+      const textWidth = el.scrollWidth;
+      if (textWidth > containerWidth && containerWidth > 0) {
+        const scale = containerWidth / textWidth;
+        el.style.transform = `scale(${scale})`;
+      }
     }
 
     function fitAllText() {
-      fitPairs.forEach(({ text, wrap }) => fitTextScale(text, wrap));
+      if (fitTextScheduled) return;
+      fitTextScheduled = true;
+      requestAnimationFrame(() => {
+        fitPairs.forEach(({ text, wrap }) => fitTextScale(text, wrap));
+        fitTextScheduled = false;
+      });
     }
 
     function toYoutubeEmbed(url) {
@@ -554,7 +561,6 @@
       youtubeCurrentVideoId = videoId;
       youtubeCurrentContentId = contentId;
       youtubeCurrentTime = NaN;
-      youtubeLastTimeAt = 0;
     }
 
     function sendYoutubeCommand(func, args = []) {
@@ -575,10 +581,17 @@
         clearInterval(youtubeTimePollTimer);
         youtubeTimePollTimer = 0;
       }
+      youtubePollingContentId = "";
     }
 
-    function startYoutubeTimePolling() {
+    function startYoutubeTimePolling(contentId = "") {
+      if (youtubeTimePollTimer && youtubePollingContentId === contentId) {
+        sendYoutubeCommand("getCurrentTime");
+        return;
+      }
+
       stopYoutubeTimePolling();
+      youtubePollingContentId = contentId;
       youtubeTimePollTimer = setInterval(() => {
         sendYoutubeCommand("getCurrentTime");
       }, 500);
@@ -600,42 +613,13 @@
       const current = Number(payload?.info?.currentTime);
       if (Number.isFinite(current) && current >= 0) {
         youtubeCurrentTime = current;
-        youtubeLastTimeAt = Date.now();
       }
     }
 
-    function applyYoutubeVolume50() {
+    function applyYoutubeVolume() {
       sendYoutubeCommand("unMute");
       sendYoutubeCommand("setVolume", [10]);
       sendYoutubeCommand("playVideo");
-    }
-
-    function maybeApplyInitialYoutubeSeek(state) {
-      if (hasAppliedInitialYoutubeSeek) return;
-      const elapsed = Number(state?.currentElapsedSeconds);
-      const duration = Number(state?.current ? getDurationSeconds(state.current) : 0);
-      if (!Number.isFinite(elapsed) || !Number.isFinite(duration)) return;
-
-      const seekSeconds = Math.floor(Math.max(0, Math.min(duration - 1, elapsed)));
-      if (seekSeconds <= 0) {
-        hasAppliedInitialYoutubeSeek = true;
-        return;
-      }
-
-      pendingInitialYoutubeSeekSeconds = seekSeconds;
-      hasAppliedInitialYoutubeSeek = true;
-    }
-
-    function tryApplyPendingInitialYoutubeSeek() {
-      if (!Number.isFinite(pendingInitialYoutubeSeekSeconds)) return;
-      const seekSeconds = Math.max(0, pendingInitialYoutubeSeekSeconds);
-      pendingInitialYoutubeSeekSeconds = NaN;
-      sendYoutubeCommand("seekTo", [seekSeconds, true]);
-      sendYoutubeCommand("playVideo");
-      setTimeout(() => {
-        sendYoutubeCommand("seekTo", [seekSeconds, true]);
-        sendYoutubeCommand("playVideo");
-      }, 500);
     }
 
     function normalizeBreakContents(etc) {
@@ -697,46 +681,50 @@
         ...playable.slice(0, baseIndex)
       ];
 
-      if (ordered.length === 1) {
-        return {
-          current: ordered[0],
-          remainingMs: getDurationSeconds(ordered[0]) * 1000,
-          currentElapsedSeconds: 0
-        };
+      const signature = ordered
+        .map((item) => `${item.id}:${getDurationSeconds(item)}:${item.type}:${item.url}`)
+        .join("|");
+
+      if (signature !== localRotationSignature) {
+        localRotationSignature = signature;
+        localRotationIndex = 0;
+        localRotationStartedAt = Date.now();
       }
 
-      const totalSeconds = ordered.reduce((sum, item) => sum + getDurationSeconds(item), 0);
-      if (totalSeconds <= 0) {
+      if (!Number.isFinite(localRotationStartedAt) || localRotationStartedAt <= 0) {
+        localRotationStartedAt = Date.now();
+      }
+
+      if (localRotationIndex < 0 || localRotationIndex >= ordered.length) {
+        localRotationIndex = 0;
+        localRotationStartedAt = Date.now();
+      }
+
+      let current = ordered[localRotationIndex];
+      let durationMs = getDurationSeconds(current) * 1000;
+      let elapsedMs = Math.max(0, Date.now() - localRotationStartedAt);
+
+      while (durationMs > 0 && elapsedMs >= durationMs && ordered.length > 0) {
+        elapsedMs -= durationMs;
+        localRotationIndex = (localRotationIndex + 1) % ordered.length;
+        localRotationStartedAt = Date.now() - elapsedMs;
+        current = ordered[localRotationIndex];
+        durationMs = getDurationSeconds(current) * 1000;
+      }
+
+      if (durationMs <= 0) {
         return {
-          current: ordered[0],
+          current,
           remainingMs: 30000,
           currentElapsedSeconds: 0
         };
       }
 
-      const seed = Number.isFinite(Number(etc?.rotationSeed ?? etc?.autoRotateSeed))
-        ? Number(etc.rotationSeed ?? etc.autoRotateSeed)
-        : Date.now();
-      const elapsedSeconds = Math.floor(Math.max(0, Date.now() - seed) / 1000) % totalSeconds;
-      let cursor = 0;
-
-      for (const item of ordered) {
-        const duration = getDurationSeconds(item);
-        const nextCursor = cursor + duration;
-        if (elapsedSeconds < nextCursor) {
-          return {
-            current: item,
-            remainingMs: (nextCursor - elapsedSeconds) * 1000,
-            currentElapsedSeconds: Math.max(0, elapsedSeconds - cursor)
-          };
-        }
-        cursor = nextCursor;
-      }
-
       return {
-        current: ordered[0],
-        remainingMs: getDurationSeconds(ordered[0]) * 1000,
-        currentElapsedSeconds: 0
+        current,
+        remainingMs: Math.max(120, durationMs - elapsedMs),
+        currentElapsedSeconds: Math.floor(elapsedMs / 1000),
+        playableCount: ordered.length
       };
     }
 
@@ -749,9 +737,7 @@
       const state = computeRotationState(etc);
       if (!state) return;
 
-      const contents = normalizeBreakContents(etc);
-      const playable = getPlayableContents(contents);
-      if (playable.length <= 1) return;
+      if (Number(state.playableCount) <= 1) return;
 
       let nextTickMs = Math.max(250, Number(state.remainingMs || 1000));
       if (state.current?.type === "youtube" && state.current?.id === youtubeCurrentContentId) {
@@ -776,16 +762,17 @@
       const current = state?.current || null;
       const type = current?.type === "image" ? "image" : "youtube";
       const rawUrl = (current?.url || "").trim();
-
-      elements.mediaImage.style.display = "none";
-      elements.mediaVideo.style.display = "none";
-      elements.mediaPlaceholder.style.display = "grid";
-      elements.mediaVideo.removeAttribute("src");
-      elements.mediaImage.removeAttribute("src");
+      const currentVideoSrc = elements.mediaVideo.getAttribute("src") || "";
+      const currentImageSrc = elements.mediaImage.getAttribute("src") || "";
 
       if (!rawUrl) {
         stopYoutubeTimePolling();
         resetYoutubePlaybackState();
+        elements.mediaImage.style.display = "none";
+        elements.mediaVideo.style.display = "none";
+        elements.mediaPlaceholder.style.display = "grid";
+        if (currentVideoSrc) elements.mediaVideo.removeAttribute("src");
+        if (currentImageSrc) elements.mediaImage.removeAttribute("src");
         scheduleNextMediaTick(latestEtc);
         return;
       }
@@ -793,8 +780,12 @@
       if (type === "image") {
         stopYoutubeTimePolling();
         resetYoutubePlaybackState();
-        elements.mediaImage.src = encodeURI(rawUrl);
+        if (currentImageSrc !== rawUrl) {
+          elements.mediaImage.src = rawUrl;
+        }
+        if (currentVideoSrc) elements.mediaVideo.removeAttribute("src");
         elements.mediaImage.style.display = "block";
+        elements.mediaVideo.style.display = "none";
         elements.mediaPlaceholder.style.display = "none";
         scheduleNextMediaTick(latestEtc);
         return;
@@ -805,37 +796,38 @@
       if (!embed) {
         stopYoutubeTimePolling();
         resetYoutubePlaybackState();
+        elements.mediaImage.style.display = "none";
+        elements.mediaVideo.style.display = "none";
+        elements.mediaPlaceholder.style.display = "grid";
+        if (currentVideoSrc) elements.mediaVideo.removeAttribute("src");
+        if (currentImageSrc) elements.mediaImage.removeAttribute("src");
         scheduleNextMediaTick(latestEtc);
         return;
       }
 
-      const isNewVideo = elements.mediaVideo.src !== embed;
+      const isNewVideo = currentVideoSrc !== embed;
       const isNewContent = youtubeCurrentContentId !== (current?.id || "");
-      elements.mediaVideo.src = embed;
+      if (isNewVideo) {
+        elements.mediaVideo.src = embed;
+      }
+      elements.mediaImage.style.display = "none";
       elements.mediaVideo.style.display = "block";
       elements.mediaPlaceholder.style.display = "none";
+      if (currentImageSrc) elements.mediaImage.removeAttribute("src");
 
       if (isNewVideo || isNewContent || youtubeCurrentVideoId !== videoId) {
         resetYoutubePlaybackState(videoId, current?.id || "");
       }
 
-      if (isNewVideo || isNewContent) {
-        maybeApplyInitialYoutubeSeek(state);
-      }
-
-      startYoutubeTimePolling();
+      startYoutubeTimePolling(current?.id || "");
 
       if (isNewVideo) {
         elements.mediaVideo.onload = () => {
-          applyYoutubeVolume50();
-          tryApplyPendingInitialYoutubeSeek();
-          setTimeout(applyYoutubeVolume50, 400);
-          setTimeout(tryApplyPendingInitialYoutubeSeek, 450);
-          setTimeout(applyYoutubeVolume50, 1200);
+          applyYoutubeVolume();
+          setTimeout(applyYoutubeVolume, 800);
         };
       } else {
-        applyYoutubeVolume50();
-        tryApplyPendingInitialYoutubeSeek();
+        applyYoutubeVolume();
       }
 
       scheduleNextMediaTick(latestEtc);
@@ -868,16 +860,18 @@
     function renderTeams(teams, score) {
       const team1 = teams?.team1 || {};
       const team2 = teams?.team2 || {};
+      const name1 = team1.name || "TEAM 1";
+      const name2 = team2.name || "TEAM 2";
 
-      elements.team1Name.textContent = team1.name || "TEAM 1";
-      elements.team2Name.textContent = team2.name || "TEAM 2";
-      elements.scoreTeam1Name.textContent = team1.name || "TEAM 1";
-      elements.scoreTeam2Name.textContent = team2.name || "TEAM 2";
+      elements.team1Name.textContent = name1;
+      elements.team2Name.textContent = name2;
+      elements.scoreTeam1Name.textContent = name1;
+      elements.scoreTeam2Name.textContent = name2;
 
-      setLogo(elements.team1Logo, team1.logo, elements.team1Slot);
-      setLogo(elements.team2Logo, team2.logo, elements.team2Slot);
-      setLogo(elements.scoreTeam1Logo, team1.logo, elements.team1Slot);
-      setLogo(elements.scoreTeam2Logo, team2.logo, elements.team2Slot);
+      setLogo(elements.team1Logo, team1.logo);
+      setLogo(elements.team2Logo, team2.logo);
+      setLogo(elements.scoreTeam1Logo, team1.logo);
+      setLogo(elements.scoreTeam2Logo, team2.logo);
 
       elements.scoreTeam1.textContent = String(score?.team1 || 0);
       elements.scoreTeam2.textContent = String(score?.team2 || 0);
