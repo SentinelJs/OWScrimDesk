@@ -434,6 +434,8 @@
     let youtubeCurrentContentId = "";
     let youtubeTimePollTimer = 0;
     let youtubeLastTimeAt = 0;
+    let pendingInitialYoutubeSeekSeconds = NaN;
+    let hasAppliedInitialYoutubeSeek = false;
 
     function setLoading(isLoading, text = "LOADING...") {
       elements.overlay.classList.toggle("loading", isLoading);
@@ -604,8 +606,36 @@
 
     function applyYoutubeVolume50() {
       sendYoutubeCommand("unMute");
-      sendYoutubeCommand("setVolume", [20]);
+      sendYoutubeCommand("setVolume", [10]);
       sendYoutubeCommand("playVideo");
+    }
+
+    function maybeApplyInitialYoutubeSeek(state) {
+      if (hasAppliedInitialYoutubeSeek) return;
+      const elapsed = Number(state?.currentElapsedSeconds);
+      const duration = Number(state?.current ? getDurationSeconds(state.current) : 0);
+      if (!Number.isFinite(elapsed) || !Number.isFinite(duration)) return;
+
+      const seekSeconds = Math.floor(Math.max(0, Math.min(duration - 1, elapsed)));
+      if (seekSeconds <= 0) {
+        hasAppliedInitialYoutubeSeek = true;
+        return;
+      }
+
+      pendingInitialYoutubeSeekSeconds = seekSeconds;
+      hasAppliedInitialYoutubeSeek = true;
+    }
+
+    function tryApplyPendingInitialYoutubeSeek() {
+      if (!Number.isFinite(pendingInitialYoutubeSeekSeconds)) return;
+      const seekSeconds = Math.max(0, pendingInitialYoutubeSeekSeconds);
+      pendingInitialYoutubeSeekSeconds = NaN;
+      sendYoutubeCommand("seekTo", [seekSeconds, true]);
+      sendYoutubeCommand("playVideo");
+      setTimeout(() => {
+        sendYoutubeCommand("seekTo", [seekSeconds, true]);
+        sendYoutubeCommand("playVideo");
+      }, 500);
     }
 
     function normalizeBreakContents(etc) {
@@ -670,7 +700,8 @@
       if (ordered.length === 1) {
         return {
           current: ordered[0],
-          remainingMs: getDurationSeconds(ordered[0]) * 1000
+          remainingMs: getDurationSeconds(ordered[0]) * 1000,
+          currentElapsedSeconds: 0
         };
       }
 
@@ -678,7 +709,8 @@
       if (totalSeconds <= 0) {
         return {
           current: ordered[0],
-          remainingMs: 30000
+          remainingMs: 30000,
+          currentElapsedSeconds: 0
         };
       }
 
@@ -694,7 +726,8 @@
         if (elapsedSeconds < nextCursor) {
           return {
             current: item,
-            remainingMs: (nextCursor - elapsedSeconds) * 1000
+            remainingMs: (nextCursor - elapsedSeconds) * 1000,
+            currentElapsedSeconds: Math.max(0, elapsedSeconds - cursor)
           };
         }
         cursor = nextCursor;
@@ -702,7 +735,8 @@
 
       return {
         current: ordered[0],
-        remainingMs: getDurationSeconds(ordered[0]) * 1000
+        remainingMs: getDurationSeconds(ordered[0]) * 1000,
+        currentElapsedSeconds: 0
       };
     }
 
@@ -785,16 +819,23 @@
         resetYoutubePlaybackState(videoId, current?.id || "");
       }
 
+      if (isNewVideo || isNewContent) {
+        maybeApplyInitialYoutubeSeek(state);
+      }
+
       startYoutubeTimePolling();
 
       if (isNewVideo) {
         elements.mediaVideo.onload = () => {
           applyYoutubeVolume50();
+          tryApplyPendingInitialYoutubeSeek();
           setTimeout(applyYoutubeVolume50, 400);
+          setTimeout(tryApplyPendingInitialYoutubeSeek, 450);
           setTimeout(applyYoutubeVolume50, 1200);
         };
       } else {
         applyYoutubeVolume50();
+        tryApplyPendingInitialYoutubeSeek();
       }
 
       scheduleNextMediaTick(latestEtc);
