@@ -93,13 +93,21 @@
       padding: 20px;
     }
 
+    .preview-shell {
+      position: relative;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      flex: 0 0 auto;
+    }
+
     .preview-wrapper {
       width: 1920px;
       height: 1080px;
       position: relative;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
       background: #000;
-      transform-origin: center center;
+      transform-origin: top left;
     }
 
     .preview-wrapper iframe {
@@ -144,9 +152,11 @@
   </div>
 
   <div class="preview-container">
-    <div class="preview-wrapper" id="previewWrapper">
-      <div class="resolution-badge">1920 × 1080</div>
-      <iframe id="previewFrame" src="/admin.html"></iframe>
+    <div class="preview-shell" id="previewShell">
+      <div class="preview-wrapper" id="previewWrapper">
+        <div class="resolution-badge">1920 × 1080</div>
+        <iframe id="previewFrame" src="/admin.html"></iframe>
+      </div>
     </div>
   </div>
 
@@ -155,29 +165,41 @@
     const customUrl = document.getElementById('customUrl');
     const loadBtn = document.getElementById('loadBtn');
     const previewFrame = document.getElementById('previewFrame');
+    const previewShell = document.getElementById('previewShell');
     const previewWrapper = document.getElementById('previewWrapper');
     const scaleInfo = document.getElementById('scaleInfo');
+    const PREVIEW_WIDTH = 1920;
+    const PREVIEW_HEIGHT = 1080;
 
-    function loadPage(url) {
+    function loadPage(url, options = {}) {
+      const { clearCustomUrl = false } = options;
       previewFrame.src = url;
-      customUrl.value = '';
+      if (clearCustomUrl) {
+        customUrl.value = '';
+      }
     }
 
     function updateScale() {
       const container = document.querySelector('.preview-container');
-      const containerWidth = container.clientWidth - 40;
-      const containerHeight = container.clientHeight - 40;
-      
-      const scaleX = containerWidth / 1920;
-      const scaleY = containerHeight / 1080;
+      const containerStyles = window.getComputedStyle(container);
+      const horizontalPadding = parseFloat(containerStyles.paddingLeft) + parseFloat(containerStyles.paddingRight);
+      const verticalPadding = parseFloat(containerStyles.paddingTop) + parseFloat(containerStyles.paddingBottom);
+
+      const containerWidth = Math.max(container.clientWidth - horizontalPadding, 0);
+      const containerHeight = Math.max(container.clientHeight - verticalPadding, 0);
+
+      const scaleX = containerWidth / PREVIEW_WIDTH;
+      const scaleY = containerHeight / PREVIEW_HEIGHT;
       const scale = Math.min(scaleX, scaleY, 1);
-      
+
+      previewShell.style.width = `${Math.floor(PREVIEW_WIDTH * scale)}px`;
+      previewShell.style.height = `${Math.floor(PREVIEW_HEIGHT * scale)}px`;
       previewWrapper.style.transform = `scale(${scale})`;
       scaleInfo.textContent = `Scale: ${Math.round(scale * 100)}%`;
     }
 
     pageSelect.addEventListener('change', (e) => {
-      loadPage(e.target.value);
+      loadPage(e.target.value, { clearCustomUrl: true });
     });
 
     loadBtn.addEventListener('click', () => {
@@ -195,6 +217,7 @@
     });
 
     window.addEventListener('resize', updateScale);
+    new ResizeObserver(updateScale).observe(document.querySelector('.preview-container'));
     updateScale();
 
     // 초기 로드시 스케일 다시 계산

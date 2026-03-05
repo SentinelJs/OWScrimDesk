@@ -23,6 +23,7 @@
       --score-size: 56px;
       --timer-size: 134px;
       --match-name-size: 44px;
+      --match-logo-size: 280px;
     }
 
     * {
@@ -183,8 +184,8 @@
     }
 
     .match-brand-logo {
-      width: 180px;
-      height: 180px;
+      width: var(--match-logo-size);
+      height: var(--match-logo-size);
       object-fit: contain;
       display: none;
     }
@@ -329,7 +330,7 @@
     <section class="canvas" id="canvas">
       <aside class="left-col">
         <section class="panel timer-panel">
-          <div class="timer-title">쉬는시간</div>
+          <div class="timer-title">Back In</div>
           <div class="timer-value" id="timerValue">00:00</div>
         </section>
 

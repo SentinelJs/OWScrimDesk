@@ -11,6 +11,7 @@ const { extractDominantColor } = require("./src/dominant-color");
 const ROOT_DIR = __dirname;
 const DATA_DIR = path.join(ROOT_DIR, "data");
 const IN_GAME_ASSETS_DIR = path.join(ROOT_DIR, "public", "in-game-assets");
+const IS_LAN_ACCESSIBLE = false
 
 ensureDir(DATA_DIR);
 
@@ -700,17 +701,20 @@ wss.on("connection", (ws) => {
 
 server.listen(3000, "0.0.0.0", () => {
   console.log("Server running at http://localhost:3000");
-  const nets = os.networkInterfaces();
-  const lanIps = [];
 
-  Object.values(nets).forEach((items) => {
-    (items || []).forEach((item) => {
-      if (!item || item.family !== "IPv4" || item.internal) return;
-      lanIps.push(item.address);
+  if (IS_LAN_ACCESSIBLE) {
+    const nets = os.networkInterfaces();
+    const lanIps = [];
+
+    Object.values(nets).forEach((items) => {
+      (items || []).forEach((item) => {
+        if (!item || item.family !== "IPv4" || item.internal) return;
+        lanIps.push(item.address);
+      });
     });
-  });
 
-  lanIps.forEach((ip) => {
-    console.log(`LAN access: http://${ip}:3000`);
-  });
+    lanIps.forEach((ip) => {
+      console.log(`LAN access: http://${ip}:3000`);
+    });
+  }
 });
