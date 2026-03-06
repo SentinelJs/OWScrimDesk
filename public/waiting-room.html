@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Waiting Room Overlay</title>
+  <style>
+    :root {
+      --bg-start: #0b0d12;
+      --bg-end: #161b25;
+      --text: #ffffff;
+      --subtext: #d2d8e3;
+      --accent: #dcb043;
+      --card-bg: rgba(12, 14, 20, 0.88);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --match-logo-size: min(26vw, 360px);
+      --match-name-size: clamp(36px, 4.2vw, 90px);
+      --subtitle-size: clamp(22px, 1.8vw, 38px);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    @font-face {
+      font-family: "Koverwatch";
+      src: url("/fonts/koverwatch.otf") format("opentype");
+      font-style: normal;
+      font-weight: normal;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+      font-family: "Koverwatch", "Pretendard", "Noto Sans KR", system-ui, sans-serif;
+      color: var(--text);
+    }
+
+    .stage {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: grid;
+      place-items: center;
+      isolation: isolate;
+      background: radial-gradient(circle at 18% 18%, rgba(52, 64, 86, 0.42) 0%, transparent 36%),
+        radial-gradient(circle at 82% 82%, rgba(220, 176, 67, 0.1) 0%, transparent 42%),
+        linear-gradient(130deg, var(--bg-start), var(--bg-end));
+    }
+
+    .aurora,
+    .aurora::before,
+    .aurora::after {
+      position: absolute;
+      inset: -30%;
+      content: "";
+      z-index: -2;
+      filter: blur(60px);
+      animation: aurora-drift 18s ease-in-out infinite alternate;
+    }
+
+    .aurora {
+      background: radial-gradient(circle, rgba(57, 78, 112, 0.2) 0%, transparent 62%);
+    }
+
+    .aurora::before {
+      background: radial-gradient(circle, rgba(220, 176, 67, 0.14) 0%, transparent 64%);
+      animation-duration: 22s;
+      animation-direction: alternate-reverse;
+    }
+
+    .aurora::after {
+      background: radial-gradient(circle, rgba(28, 34, 46, 0.34) 0%, transparent 60%);
+      animation-duration: 25s;
+    }
+
+    .particles {
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background-image:
+        radial-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1px),
+        radial-gradient(rgba(220, 176, 67, 0.12) 1px, transparent 1px);
+      background-size: 48px 48px, 72px 72px;
+      background-position: 0 0, 24px 24px;
+      animation: particles-float 40s linear infinite;
+      opacity: 0.26;
+    }
+
+    /* ── 모션그래픽 캔버스 ── */
+    #mgCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .content {
+      position: relative;
+      z-index: 1;
+      width: min(1200px, calc(100vw - 80px));
+      min-height: min(680px, calc(100vh - 120px));
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      background: var(--card-bg);
+      backdrop-filter: blur(8px);
+      display: grid;
+      place-items: center;
+      padding: 48px 28px;
+      overflow: hidden;
+      box-shadow: 0 16px 38px rgba(0, 0, 0, 0.5), 0 0 20px rgba(220, 176, 67, 0.08);
+    }
+
+    .content::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, transparent 0%, rgba(220, 176, 67, 0.06) 46%, transparent 52%);
+      transform: translateX(-130%);
+      animation: shimmer 7s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    .brand-wrap {
+      width: 100%;
+      display: grid;
+      justify-items: center;
+      text-align: center;
+      gap: 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .logo-ring {
+      width: calc(var(--match-logo-size) + 34px);
+      height: calc(var(--match-logo-size) + 34px);
+      border-radius: 999px;
+      border: 2px solid rgba(220, 176, 67, 0.45);
+      display: grid;
+      place-items: center;
+      animation: ring-pulse 3s ease-in-out infinite;
+      background: radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0));
+    }
+
+    .fallback-emblem {
+      display: none;
+      width: calc(var(--match-logo-size) * 0.74);
+      height: calc(var(--match-logo-size) * 0.74);
+      border-radius: 999px;
+      border: 2px solid rgba(220, 176, 67, 0.66);
+      background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.04));
+      box-shadow: inset 0 0 24px rgba(220, 176, 67, 0.28), 0 6px 24px rgba(0, 0, 0, 0.35);
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(52px, 5.5vw, 104px);
+      letter-spacing: 0.06em;
+      color: rgba(247, 249, 255, 0.95);
+      text-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+      animation: emblem-pulse 2.7s ease-in-out infinite;
+    }
+
+    .match-logo {
+      width: var(--match-logo-size);
+      height: var(--match-logo-size);
+      object-fit: contain;
+      filter: drop-shadow(0 10px 26px rgba(0, 0, 0, 0.45));
+      animation: logo-float 4.5s ease-in-out infinite;
+    }
+
+    .match-logo.hidden {
+      display: none;
+    }
+
+    .content.no-logo .logo-ring {
+      border-style: dashed;
+      border-color: rgba(220, 176, 67, 0.3);
+      background: radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0));
+    }
+
+    .content.no-logo .fallback-emblem {
+      display: flex;
+    }
+
+    .content.no-logo .match-name {
+      letter-spacing: 0.05em;
+    }
+
+    .match-name {
+      max-width: min(1100px, 88vw);
+      font-size: var(--match-name-size);
+      line-height: 1.05;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      text-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+      animation: title-breathe 4s ease-in-out infinite;
+      white-space: pre-wrap;
+      word-break: keep-all;
+    }
+
+    .loading-screen {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.85);
+      font-size: 36px;
+      letter-spacing: 0.08em;
+      z-index: 30;
+    }
+
+    .loading-screen.hidden {
+      display: none;
+    }
+
+    @keyframes aurora-drift {
+      from { transform: translate(-4%, -3%) scale(1); }
+      to { transform: translate(6%, 4%) scale(1.13); }
+    }
+
+    @keyframes particles-float {
+      from { transform: translateY(0); }
+      to { transform: translateY(-72px); }
+    }
+
+    @keyframes shimmer {
+      0% { transform: translateX(-130%); }
+      45% { transform: translateX(-130%); }
+      70% { transform: translateX(130%); }
+      100% { transform: translateX(130%); }
+    }
+
+    @keyframes logo-float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-12px); }
+    }
+
+    @keyframes ring-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(220, 176, 67, 0.2); }
+      50% { box-shadow: 0 0 0 18px rgba(220, 176, 67, 0); }
+    }
+
+    @keyframes title-breathe {
+      0%, 100% { opacity: 0.9; }
+      50% { opacity: 1; }
+    }
+
+    @keyframes emblem-pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.04); }
+    }
+
+  </style>
+</head>
+<body>
+  <main class="stage" id="stage">
+    <div class="aurora"></div>
+    <div class="particles"></div>
+    <canvas id="mgCanvas"></canvas>
+
+    <section class="content" id="content" aria-label="waiting-room">
+      <div class="brand-wrap">
+        <div class="logo-ring">
+          <img class="match-logo hidden" id="matchLogo" alt="Match Logo" />
+          <div class="fallback-emblem" id="fallbackEmblem">OW</div>
+        </div>
+        <div class="match-name" id="matchName">MATCH NAME</div>
+      </div>
+
+    </section>
+
+    <div class="loading-screen" id="loadingScreen">LOADING...</div>
+  </main>
+
+  <script>
+    const elements = {
+      stage: document.getElementById("stage"),
+      content: document.getElementById("content"),
+      loadingScreen: document.getElementById("loadingScreen"),
+      matchLogo: document.getElementById("matchLogo"),
+      fallbackEmblem: document.getElementById("fallbackEmblem"),
+      matchName: document.getElementById("matchName")
+    };
+
+    let ws = null;
+
+    function setLoading(isLoading, text = "LOADING...") {
+      elements.loadingScreen.textContent = text;
+      elements.loadingScreen.classList.toggle("hidden", !isLoading);
+    }
+
+    function setImage(el, src) {
+      const safe = typeof src === "string" ? src.trim() : "";
+      if (!safe) {
+        el.removeAttribute("src");
+        el.classList.add("hidden");
+        return false;
+      }
+      el.src = safe;
+      el.classList.remove("hidden");
+      return true;
+    }
+
+    function getFallbackInitials(matchName) {
+      const text = String(matchName || "").trim();
+      if (!text) return "OW";
+      const words = text.split(/\s+/).filter(Boolean);
+      if (words.length >= 2) {
+        return `${words[0][0] || ""}${words[1][0] || ""}`.toUpperCase();
+      }
+      return text.slice(0, 2).toUpperCase();
+    }
+
+    function render(payload) {
+      if (!payload) return;
+      const settings = payload.settings || {};
+      const matchName = String(settings.matchName || "").trim();
+      const matchLogo = String(settings.matchLogo || "").trim();
+
+      const safeMatchName = matchName || "OVERWATCH CUSTOM MATCH";
+      const hasLogo = setImage(elements.matchLogo, matchLogo);
+
+      elements.content.classList.toggle("no-logo", !hasLogo);
+      elements.fallbackEmblem.textContent = getFallbackInitials(safeMatchName);
+
+      elements.matchName.textContent = safeMatchName;
+    }
+
+    async function loadInitialSnapshot() {
+      const response = await fetch("/api/overlay/snapshot", { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error("초기 데이터를 불러오지 못했습니다.");
+      }
+      return response.json();
+    }
+
+    function connectOverlayWS() {
+      const wsProtocol = location.protocol === "https:" ? "wss" : "ws";
+      const wsHost = location.host || "localhost:3000";
+      ws = new WebSocket(`${wsProtocol}://${wsHost}`);
+
+      ws.addEventListener("open", () => {
+        ws.send(JSON.stringify({ type: "overlay:hello" }));
+      });
+
+      ws.addEventListener("message", (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === "overlay:update") {
+          render(data.payload);
+        }
+      });
+
+      ws.addEventListener("close", () => {
+        setTimeout(connectOverlayWS, 1500);
+      });
+    }
+
+    async function init() {
+      setLoading(true, "LOADING...");
+      try {
+        const snapshot = await loadInitialSnapshot();
+        render(snapshot);
+        setLoading(false);
+        connectOverlayWS();
+      } catch (error) {
+        setLoading(true, "DATA LOADING...");
+        setTimeout(init, 1200);
+      }
+    }
+
+    init();
+
+    /* ── 모션그래픽: 헥사곤 그리드 + 라이트 스트릭 ── */
+    (function initMotionGraphic() {
+      const canvas = document.getElementById("mgCanvas");
+      const ctx    = canvas.getContext("2d");
+
+      const ACCENT       = [220, 176, 67];
+      const COOL         = [80,  120, 180];
+      const HEX_SIZE     = 42;
+      const HEX_GAP      = 5;
+      const STREAK_COUNT = 6;
+
+      let W, H, hexes, streaks;
+      let then = 0;
+
+      /* ─ 헥사곤 데이터 생성 ─ */
+      function buildHexes() {
+        hexes = [];
+        const dx = (HEX_SIZE * 2 + HEX_GAP) * Math.cos(Math.PI / 6);
+        const dy = HEX_SIZE * 1.5 + HEX_GAP * 0.5;
+        const cols = Math.ceil(W / dx) + 2;
+        const rows = Math.ceil(H / dy) + 2;
+
+        for (let row = -1; row < rows; row++) {
+          for (let col = -1; col < cols; col++) {
+            const offset = (row % 2 === 0) ? 0 : dx * 0.5;
+            const cx = col * dx + offset;
+            const cy = row * dy;
+            hexes.push({
+              cx,
+              cy,
+              noisePhase: Math.random() * Math.PI * 2,
+              noiseSpeed: 0.3 + Math.random() * 0.3,
+              color: Math.random() < 0.3 ? ACCENT : COOL,
+            });
+          }
+        }
+      }
+
+      /* ─ 동심원 리플 파라미터 ─ */
+      const WAVE = {
+        // 리플 1: 정원형, 빠르게 퍼짐
+        R1: { k: 0.022, speed: 2.8,  amp: 0.55 },
+        // 리플 2: 타원형, 약간 느리게
+        R2: { k: 0.016, speed: 1.7,  amp: 0.35, scaleX: 1.5 },
+        base:  0.04,
+        peak:  0.46,
+        noise: 0.04,
+      };
+
+      /* ─ 라이트 스트릭 생성 ─ */
+      function makeStreak() {
+        const fromLeft = Math.random() < 0.5;
+        const angle = (20 + Math.random() * 20) * (Math.PI / 180);
+        const spd   = 3.5 + Math.random() * 3;
+        return {
+          x:        fromLeft ? -80 : W + 80,
+          y:        H * (0.1 + Math.random() * 0.8),
+          vx:       (fromLeft ? 1 : -1) * spd,
+          vy:       (Math.random() < 0.5 ? 1 : -1) * Math.tan(angle) * spd,
+          len:      180 + Math.random() * 260,
+          width:    0.8 + Math.random() * 1.4,
+          alpha:    0,
+          maxAlpha: 0.28 + Math.random() * 0.22,
+          color:    Math.random() < 0.45 ? ACCENT : [200, 220, 255],
+          state:    "fadein",
+          holdTick: 0,
+          holdMax:  20 + Math.random() * 30,
+        };
+      }
+
+      function buildStreaks() {
+        streaks = [];
+        for (let i = 0; i < STREAK_COUNT; i++) {
+          const s = makeStreak();
+          s.x += (Math.random() - 0.5) * W;
+          s.y += (Math.random() - 0.5) * H * 0.4;
+          streaks.push(s);
+        }
+      }
+
+      /* ─ 헥사곤 경로 ─ */
+      function hexPath(cx, cy, r) {
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+          const a  = (Math.PI / 3) * i - Math.PI / 6;
+          const px = cx + r * Math.cos(a);
+          const py = cy + r * Math.sin(a);
+          i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+      }
+
+      /* ─ 매 프레임 그리기 ─ */
+      function draw(now) {
+        then = now;
+        ctx.clearRect(0, 0, W, H);
+
+        /* 헥사곤 그리드 — 중심 방사형 리플 */
+        const t  = now * 0.001;
+        const cx0 = W * 0.5;   // 화면 중심
+        const cy0 = H * 0.5;
+        const r1 = WAVE.R1, r2 = WAVE.R2;
+
+        for (const h of hexes) {
+          // 중심까지 유클리드 거리
+          const dx = h.cx - cx0;
+          const dy = h.cy - cy0;
+          const dist1 = Math.sqrt(dx * dx + dy * dy);
+          // 리플 2는 x축을 scaleX 배 늘린 타원 거리
+          const dist2 = Math.sqrt((dx / r2.scaleX) ** 2 + dy * dy);
+
+          // sin(k * dist - t * speed): 중심→바깥으로 퍼지는 파문
+          const val1 = Math.sin(dist1 * r1.k - t * r1.speed);
+          const val2 = Math.sin(dist2 * r2.k - t * r2.speed);
+
+          const wave = (val1 * r1.amp + val2 * r2.amp) / (r1.amp + r2.amp);
+          const normalized = 0.5 + 0.5 * wave;  // 0~1
+
+          // 개별 미세 떨림
+          const noise = Math.sin(t * h.noiseSpeed + h.noisePhase) * WAVE.noise;
+          const alpha = Math.max(0, WAVE.base + normalized * (WAVE.peak - WAVE.base) + noise);
+
+          const [r, g, b] = h.color;
+          ctx.strokeStyle = `rgba(${r},${g},${b},${alpha})`;
+          ctx.lineWidth = 0.7;
+          hexPath(h.cx, h.cy, HEX_SIZE - 1);
+          ctx.stroke();
+        }
+
+        /* 라이트 스트릭 */
+        for (let i = streaks.length - 1; i >= 0; i--) {
+          const s = streaks[i];
+
+          if (s.state === "fadein") {
+            s.alpha = Math.min(s.alpha + 0.018, s.maxAlpha);
+            if (s.alpha >= s.maxAlpha) s.state = "hold";
+          } else if (s.state === "hold") {
+            s.holdTick++;
+            if (s.holdTick >= s.holdMax) s.state = "fadeout";
+          } else if (s.state === "fadeout") {
+            s.alpha = Math.max(s.alpha - 0.012, 0);
+            if (s.alpha <= 0) s.state = "dead";
+          }
+
+          if (s.state === "dead") {
+            streaks[i] = makeStreak();
+            continue;
+          }
+
+          s.x += s.vx;
+          s.y += s.vy;
+
+          const [r, g, b] = s.color;
+          const mag = Math.hypot(s.vx, s.vy);
+          const tx  = s.x - s.vx * (s.len / mag);
+          const ty  = s.y - s.vy * (s.len / mag);
+          const grad = ctx.createLinearGradient(tx, ty, s.x, s.y);
+          grad.addColorStop(0,   `rgba(${r},${g},${b},0)`);
+          grad.addColorStop(0.5, `rgba(${r},${g},${b},${s.alpha})`);
+          grad.addColorStop(1,   `rgba(${r},${g},${b},0)`);
+
+          ctx.save();
+          ctx.strokeStyle = grad;
+          ctx.lineWidth   = s.width;
+          ctx.shadowColor = `rgba(${r},${g},${b},0.4)`;
+          ctx.shadowBlur  = 8;
+          ctx.beginPath();
+          ctx.moveTo(tx, ty);
+          ctx.lineTo(s.x, s.y);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        requestAnimationFrame(draw);
+      }
+
+      /* ─ 리사이즈 ─ */
+      function resize() {
+        W = canvas.width  = canvas.offsetWidth;
+        H = canvas.height = canvas.offsetHeight;
+        buildHexes();
+        buildStreaks();
+      }
+
+      window.addEventListener("resize", resize);
+      resize();
+      requestAnimationFrame(draw);
+    })();
+  </script>
+</body>
+</html>

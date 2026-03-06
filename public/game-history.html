@@ -6,17 +6,18 @@
   <title>OW2 Game History Overlay</title>
   <link rel="stylesheet" href="/css/shared-topbar.css" />
   <style>
+    @font-face {
+      font-family: "koverwatch";
+      src: url("/fonts/koverwatch.otf") format("opentype");
+      font-style: normal;
+      font-weight: 400;
+    }
+
     :root {
-      --bg: #1A1A1A;
-      --text: #FAFAF8;
-      --muted: rgba(255, 255, 255, 0.72);
-      --score-bg: #c9ac55;
-      --header-height: 110px;
-      --ui-font-scale: 1.2;
       --card-gap: 2px;
       --card-top-height: 56px;
       --card-bans-height: 180px;
-      --card-mapname-height: 65px;
+      --card-mapname-height: 90px;
       --ban-card-width: clamp(65px, 5vw, 100px);
       --ban-label-height: clamp(18px, 1.4vw, 24px);
       --ban-cell-gap: 50px;
@@ -60,11 +61,6 @@
 
     .game-history-overlay.loading > *:not(.loading-screen) {
       visibility: hidden;
-    }
-
-    #shared-topbar-slot .pick-indicator,
-    #shared-topbar-slot .picking-text {
-      display: none;
     }
 
     #shared-topbar-slot .team-logo img {
@@ -317,8 +313,8 @@
       place-items: center;
       text-align: center;
       padding: 0 10px;
-      font-size: clamp(18px, 1.35vw, 28px);
-      font-weight: 700;
+      font-size: clamp(18px, 1.9vw, 56px);
+      font-family: "koverwatch", "Pretendard", "Noto Sans KR", system-ui, sans-serif;
       letter-spacing: 0.03em;
       text-transform: uppercase;
       background: rgba(0, 0, 0, 0.68);
@@ -503,8 +499,7 @@
         score,
         settings,
         history,
-        currentMatchIndex: state.currentMatchIndex || 1,
-        showPickIndicator: false
+        currentMatchIndex: state.currentMatchIndex || 1
       });
 
       const slotCount = parseSeriesToSlotCount(settings.series);

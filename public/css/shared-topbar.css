@@ -1,4 +1,10 @@
 :root {
+  --bg: #1A1A1A;
+  --text: #FAFAF8;
+  --muted: rgba(255, 255, 255, 0.7);
+  --score-bg: #c9ac55;
+  --header-height: 135px;
+  --ui-font-scale: 1.4;
   --shared-topbar-team-name-no-logo-offset: 16px;
 }
 
@@ -30,8 +36,8 @@
 }
 
 .team-logo {
-  width: 84px;
-  height: 84px;
+  width: 110px;
+  height: 110px;
   background: transparent;
   display: grid;
   place-items: center;
@@ -63,26 +69,6 @@
   padding: 0 16px;
   border: none;
   text-align: center;
-}
-
-.pick-indicator {
-  position: absolute;
-  top: 50%;
-  transform: translateY(22px);
-  font-size: 16px;
-  letter-spacing: 1px;
-  color: var(--muted);
-  white-space: nowrap;
-  pointer-events: none;
-}
-
-.team-block.left .pick-indicator {
-  left: 106px;
-}
-
-.team-block.right .pick-indicator {
-  right: 106px;
-  text-align: right;
 }
 
 .team-inline {
@@ -191,13 +177,10 @@
 }
 
 .match-logo {
-  width: 60px;
-  height: 60px;
+  width: 80px;
+  height: 80px;
   object-fit: contain;
   display: none;
   flex-shrink: 0;
 }
 
-.picking-text {
-  display: none;
-}

@@ -6,18 +6,19 @@
   <title>Hero Ban Overlay</title>
   <link rel="stylesheet" href="/css/shared-topbar.css" />
     <style>
+      @font-face {
+        font-family: "koverwatch";
+        src: url("/fonts/koverwatch.otf") format("opentype");
+        font-style: normal;
+        font-weight: 400;
+      }
+
       :root {
-        --bg: #1A1A1A;
-        --text: #FAFAF8;
-        --muted: rgba(255, 255, 255, 0.7);
         --accent-left: #e6335a;
         --accent-right: #02f7f8;
-        --score-bg: #c9ac55;
         --panel-bg: transparent;
         --map-image: none;
-        --ui-font-scale: 1.2;
-        --header-height: 110px;
-        --center-divider-width: 5px;
+        --center-divider-width: 5.2px;
         --center-divider-color: #111111;
       }
 
@@ -67,14 +68,6 @@
 
       .hero-ban-overlay.loading > *:not(.loading-screen) {
         visibility: hidden;
-      }
-
-      .pick-indicator {
-        display: none;
-      }
-
-      .picking-text {
-        display: none;
       }
 
       .main-area {
@@ -151,8 +144,8 @@
         left: 50%;
         top: 50%;
         transform: translate(-50%, -50%) rotate(45deg);
-        width: 40px;
-        height: 40px;
+        width: 50px;
+        height: 50px;
         background: #1A1A1A;
         display: grid;
         place-items: center;
@@ -179,13 +172,19 @@
         display: grid;
         place-items: center;
         font-size: calc(26px * var(--ui-font-scale));
-        font-weight: 700;
         text-transform: uppercase;
         border-right: none;
+        letter-spacing: 0.03em;
       }
 
       .info-cell:last-child {
         border-right: none;
+      }
+
+      #ban-name-left,
+      #ban-name-right,
+      #map-name-bar {
+        font-family: "koverwatch", "Pretendard", "Noto Sans KR", system-ui, sans-serif;
       }
 
       #map-name-bar {
@@ -391,8 +390,7 @@
           score,
           settings,
           history: state.history || [],
-          currentMatchIndex: state.state?.currentMatchIndex || 1,
-          showPickIndicator: false
+          currentMatchIndex: state.state?.currentMatchIndex || 1
         });
 
         const game = state.state || {};

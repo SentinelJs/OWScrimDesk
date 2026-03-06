@@ -143,7 +143,6 @@
             font-size: 12px;
             line-height: 14px;
             text-align: center;
-            font-weight: bold;
             letter-spacing: 1px;
         }
 
@@ -176,6 +175,7 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            letter-spacing: 0.03em;
         }
 
         /* LEFT PANEL */
@@ -208,8 +208,8 @@
             justify-content: space-between; /* 양쪽 끝 정렬로 변경 */
             align-items: center;
             font-size: 14px;
-            font-weight: bold;
             z-index: 100;
+            letter-spacing: 0.03em;
             padding: 0 10px; /* 좌우 10px 패딩 추가 */
             box-sizing: border-box; /* 패딩이 너비에 포함되도록 */
             white-space: pre; /* 연속된 공백 유지 */
@@ -241,9 +241,9 @@
     <div class="center-notice-box">
         <span class="match-title-wrap">
             <img id="match-logo-small" src="" alt="MatchLogo">
-            <span id="match-title">KHU Espers</span>
+            <span id="match-title"></span>
         </span>
-        <span id="set-score">SET 1 ㅣ 눔바니</span>
+        <span id="set-score"></span>
     </div>
 
     <div id="left-ui" class="ui-bar left-panel">

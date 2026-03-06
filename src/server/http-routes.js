@@ -47,6 +47,10 @@ function registerHttpRoutes(app, deps) {
     res.sendFile(path.join(ROOT_DIR, "public", "intermission.html"));
   });
 
+  app.get("/waiting-room", (req, res) => {
+    res.sendFile(path.join(ROOT_DIR, "public", "waiting-room.html"));
+  });
+
   app.get("/api/assets/maps", (req, res) => {
     refreshAssets();
     res.json(getAssets().maps);

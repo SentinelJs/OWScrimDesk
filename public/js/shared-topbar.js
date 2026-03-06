@@ -1,12 +1,4 @@
 (() => {
-  function getPickingTeam(settings = {}, history = [], gameIndex = 1) {
-    const initial = settings.firstPickTeamId || "team1";
-    if (gameIndex <= 1) return initial;
-    const prev = history.find((game) => game.index === gameIndex - 1);
-    if (!prev || !prev.winner) return initial;
-    return prev.winner === "team1" ? "team2" : "team1";
-  }
-
   function updateLogo(container, logoUrl) {
     if (!container) return;
     const teamBlock = container.closest(".team-block");
@@ -74,39 +66,6 @@
     fitMatchNameText(matchName, matchMetaContent);
   }
 
-  function setPickIndicators(pickLeft, pickRight, options = {}) {
-    if (!pickLeft || !pickRight) return;
-
-    const {
-      settings = {},
-      history = [],
-      currentMatchIndex = 1,
-      showPickIndicator = false,
-      pickLabel = "MAP PICK"
-    } = options;
-
-    if (!showPickIndicator) {
-      pickLeft.textContent = "";
-      pickRight.textContent = "";
-      return;
-    }
-
-    const pickingTeam = getPickingTeam(settings, history, currentMatchIndex);
-    if (pickingTeam === "team1") {
-      pickLeft.textContent = pickLabel;
-      pickRight.textContent = "";
-      return;
-    }
-    if (pickingTeam === "team2") {
-      pickLeft.textContent = "";
-      pickRight.textContent = pickLabel;
-      return;
-    }
-
-    pickLeft.textContent = "";
-    pickRight.textContent = "";
-  }
-
   function cacheTopbarElements(root = document) {
     return {
       team1Name: root.getElementById("team1-name"),
@@ -117,10 +76,7 @@
       scoreTeam2: root.getElementById("score-team2"),
       matchName: root.getElementById("match-name"),
       matchLogo: root.getElementById("match-logo"),
-      matchMetaContent: root.getElementById("match-meta-content"),
-      pickLeft: root.getElementById("pick-left"),
-      pickRight: root.getElementById("pick-right"),
-      pickingText: root.getElementById("picking-text")
+      matchMetaContent: root.getElementById("match-meta-content")
     };
   }
 
@@ -143,11 +99,7 @@
       update({
         teams = {},
         score = {},
-        settings = {},
-        history = [],
-        currentMatchIndex = 1,
-        showPickIndicator = false,
-        pickLabel = "MAP PICK"
+        settings = {}
       } = {}) {
         const safeTeams = {
           team1: { name: "Team 1", logo: "", ...(teams.team1 || {}) },
@@ -166,18 +118,6 @@
         if (els.matchName && els.matchLogo && els.matchMetaContent) {
           setMatchMeta(els.matchName, els.matchLogo, els.matchMetaContent, settings);
         }
-
-        if (els.pickingText) {
-          els.pickingText.textContent = "";
-        }
-
-        setPickIndicators(els.pickLeft, els.pickRight, {
-          settings,
-          history,
-          currentMatchIndex,
-          showPickIndicator,
-          pickLabel
-        });
       },
 
       fitMatchNameText() {
@@ -187,7 +127,6 @@
   }
 
   window.SharedTopbar = {
-    mount,
-    getPickingTeam
+    mount
   };
 })();
