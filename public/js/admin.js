@@ -45,7 +45,7 @@ async function refreshAllData(options = {}) {
   const { force = false, showSuccessToast = true } = options;
   if (!force && ctx.unsaved.hasAnyDirty()) {
     const confirmed = ctx.unsaved.confirmDiscard(
-      getUnsavedWarningMessage("새로 불러오시겠습니까?")
+      getUnsavedWarningMessage("새로 불러오기")
     );
     if (!confirmed) return false;
   }
@@ -99,7 +99,7 @@ function tabInit() {
       if (btn.classList.contains("active")) return;
       if (ctx.unsaved.hasAnyDirty()) {
         const confirmed = ctx.unsaved.confirmDiscard(
-          getUnsavedWarningMessage("탭을 이동하시겠습니까?")
+          getUnsavedWarningMessage("탭 이동")
         );
         if (!confirmed) return;
       }
@@ -147,6 +147,7 @@ async function init() {
   ctx.unsaved.register("ingame", "In-Game", ingameModule.getSnapshot);
   ctx.unsaved.register("history", "History", historyModule.getSnapshot);
   ctx.unsaved.register("match", "Match Info", matchModule.getSnapshot);
+  ctx.unsaved.register("etc", "ETC", etcModule.getSnapshot);
 
   teamModule.render();
   ingameModule.render();

@@ -273,6 +273,63 @@ export function createEtcModule(ctx) {
     return revisionCounter;
   }
 
+  function getSnapshot() {
+    const ensured = ensureEtcSettings(state.settings);
+    const sponsorInput = document.getElementById("etc-sponsor");
+    const minutesInput = document.getElementById("etc-break-minutes");
+    const secondsInput = document.getElementById("etc-break-seconds");
+    const contentRows = Array.from(document.querySelectorAll("#etcContentTable tbody tr[data-content-id]"));
+    const playerInputs = Array.from(document.querySelectorAll("#etc-player-shell input[data-team]"));
+
+    const breakContents = contentRows.map((row, index) => {
+      const titleInput = row.querySelector('[data-field="title"]');
+      const typeSelect = row.querySelector('[data-field="type"]');
+      const urlInput = row.querySelector('[data-field="url"]');
+      const enabledInput = row.querySelector('[data-field="enabled"]');
+      const selectedInput = row.querySelector('[data-field="selected"]');
+      const durationMinutesInput = row.querySelector('[data-field="durationMinutes"]');
+      const durationSecondsInput = row.querySelector('[data-field="durationSeconds"]');
+
+      return {
+        id: row.dataset.contentId || `content-${index + 1}`,
+        title: titleInput instanceof HTMLInputElement ? titleInput.value : `콘텐츠 ${index + 1}`,
+        type: typeSelect instanceof HTMLSelectElement && typeSelect.value === "image" ? "image" : "youtube",
+        url: urlInput instanceof HTMLInputElement ? urlInput.value : "",
+        durationSeconds: parseDurationFromInputs(
+          durationMinutesInput instanceof HTMLInputElement ? durationMinutesInput.value : 0,
+          durationSecondsInput instanceof HTMLInputElement ? durationSecondsInput.value : 0
+        ),
+        enabled: enabledInput instanceof HTMLInputElement ? enabledInput.checked : true,
+        order: index,
+        selected: selectedInput instanceof HTMLInputElement ? selectedInput.checked : false
+      };
+    });
+
+    const players = {
+      team1: ensureTeamPlayers(ensured.players?.team1),
+      team2: ensureTeamPlayers(ensured.players?.team2)
+    };
+
+    playerInputs.forEach((input) => {
+      const team = input.dataset.team;
+      const index = Number(input.dataset.index);
+      const field = input.dataset.field;
+      if (!players[team]?.[index] || !field) return;
+      players[team][index][field] = input.value || "";
+    });
+
+    const selected = breakContents.find((item) => item.selected);
+
+    return {
+      sponsor: sponsorInput instanceof HTMLInputElement ? sponsorInput.value : ensured.sponsor,
+      breakMinutes: minutesInput instanceof HTMLInputElement ? Number(minutesInput.value || ensured.breakMinutes) : ensured.breakMinutes,
+      breakSeconds: secondsInput instanceof HTMLInputElement ? Number(secondsInput.value || ensured.breakSeconds) : ensured.breakSeconds,
+      breakContents: breakContents.map(({ selected: _, ...item }) => item),
+      selectedBreakContentId: selected?.id || ensured.selectedBreakContentId || breakContents[0]?.id || "",
+      players
+    };
+  }
+
   async function persistAndPublish(withToast = false) {
     await fetchJSON("/api/settings", {
       method: "POST",
@@ -287,6 +344,8 @@ export function createEtcModule(ctx) {
       state: state.current,
       history: state.history
     });
+
+    ctx.unsaved?.sync("etc");
 
     if (withToast) showToast("ETC 설정이 저장되었습니다.");
   }
@@ -673,5 +732,5 @@ export function createEtcModule(ctx) {
     }
   }
 
-  return { render, bind, save };
+  return { render, bind, save, getSnapshot };
 }
