@@ -1,6 +1,6 @@
 const DEFAULT_SETTINGS = {
   matchName: "OW2 Scrim",
-  matchLogo: "",
+  matchLogo: "/img/icon/primary-logo.png",
   series: "Bo3",
   firstPickTeamId: "team1",
   enableHeroBan: true,

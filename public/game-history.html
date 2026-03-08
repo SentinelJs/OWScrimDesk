@@ -13,6 +13,13 @@
       font-weight: 400;
     }
 
+    @font-face {
+      font-family: "FreesentationWinner";
+      src: url("/fonts/Freesentation-8ExtraBold.ttf") format("truetype");
+      font-style: normal;
+      font-weight: 800;
+    }
+
     :root {
       --card-gap: 2px;
       --card-top-height: 56px;
@@ -22,6 +29,10 @@
       --ban-label-height: clamp(18px, 1.4vw, 24px);
       --ban-cell-gap: 50px;
       --mode-icon-size: clamp(40px, 4vw, 60px);
+      --winner-name-font-koverwatch: "koverwatch", "Pretendard", "Noto Sans KR", system-ui, sans-serif;
+      --winner-name-font-freesentation: "FreesentationWinner", "Pretendard", "Noto Sans KR", system-ui, sans-serif;
+      --winner-name-font: var(--winner-name-font-freesentation);
+      --pending-logo-size: clamp(52px, 5.6vw, 92px);
     }
 
     * { box-sizing: border-box; }
@@ -98,6 +109,21 @@
 
     .slot-card.pending {
       background: #2a2a2a;
+    }
+
+    .slot-card.pending::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: calc((100% - var(--card-mapname-height)) / 2);
+      width: var(--pending-logo-size);
+      height: var(--pending-logo-size);
+      transform: translate(-50%, -50%);
+      background: url('/img/icon/primary-logo.png') center / contain no-repeat;
+      filter: grayscale(1) brightness(1.9);
+      opacity: 0.16;
+      z-index: 0;
+      pointer-events: none;
     }
 
     .slot-bg {
@@ -202,8 +228,8 @@
     .winner-name {
       font-size: clamp(22px, 1.9vw, 34px);
       font-weight: 700;
+      font-family: var(--winner-name-font);
       letter-spacing: 0.02em;
-      text-transform: uppercase;
       text-shadow: 0 3px 8px rgba(0, 0, 0, 0.75);
     }
 

@@ -44,6 +44,41 @@ function labDist2(a, b) {
   return d0 * d0 + d1 * d1 + d2 * d2;
 }
 
+function collectPointsFromImage(data, info, options) {
+  const {
+    step,
+    alphaMin,
+    nearWhiteThr,
+    nearBlackThr,
+    ignoreTransparent,
+    ignoreNearWhite,
+    ignoreNearBlack
+  } = options;
+
+  const points = [];
+  const w = info.width;
+  const h = info.height;
+  const channels = info.channels;
+
+  for (let y = 0; y < h; y += step) {
+    for (let x = 0; x < w; x += step) {
+      const i = (y * w + x) * channels;
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const a = channels >= 4 ? data[i + 3] : 255;
+
+      if (ignoreTransparent && a < alphaMin) continue;
+      if (ignoreNearWhite && isNearWhite(r, g, b, nearWhiteThr)) continue;
+      if (ignoreNearBlack && isNearBlack(r, g, b, nearBlackThr)) continue;
+
+      points.push({ rgb: [r, g, b], lab: rgbToLab(r, g, b) });
+    }
+  }
+
+  return points;
+}
+
 // ---- decoding input ----
 function decodeImageInput(input) {
   if (Buffer.isBuffer(input)) return input;
@@ -186,34 +221,73 @@ async function extractDominantColor(input, options = {}) {
     .raw()
     .toBuffer({ resolveWithObject: true });
 
-  const points = [];
-  const w = info.width;
-  const h = info.height;
-  const channels = info.channels; // should be 4
+  const attempts = [
+    {
+      ignoreTransparent,
+      ignoreNearWhite,
+      ignoreNearBlack,
+      nearWhiteThr,
+      nearBlackThr,
+      fallbackStage: "strict"
+    },
+    {
+      ignoreTransparent,
+      ignoreNearWhite,
+      ignoreNearBlack,
+      nearWhiteThr: Math.min(254, nearWhiteThr + 8),
+      nearBlackThr: Math.max(1, nearBlackThr - 8),
+      fallbackStage: "relaxed-thresholds"
+    },
+    {
+      ignoreTransparent,
+      ignoreNearWhite,
+      ignoreNearBlack: false,
+      nearWhiteThr,
+      nearBlackThr,
+      fallbackStage: "allow-near-black"
+    },
+    {
+      ignoreTransparent,
+      ignoreNearWhite: false,
+      ignoreNearBlack,
+      nearWhiteThr,
+      nearBlackThr,
+      fallbackStage: "allow-near-white"
+    },
+    {
+      ignoreTransparent,
+      ignoreNearWhite: false,
+      ignoreNearBlack: false,
+      nearWhiteThr,
+      nearBlackThr,
+      fallbackStage: "allow-white-black"
+    }
+  ];
 
-  // 샘플링
-  for (let y = 0; y < h; y += step) {
-    for (let x = 0; x < w; x += step) {
-      const i = (y * w + x) * channels;
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
-      const a = channels >= 4 ? data[i + 3] : 255;
+  let points = [];
+  let appliedFallbackStage = "strict";
 
-      if (ignoreTransparent && a < alphaMin) continue;
-      if (ignoreNearWhite && isNearWhite(r, g, b, nearWhiteThr)) continue;
-      if (ignoreNearBlack && isNearBlack(r, g, b, nearBlackThr)) continue;
+  for (const attempt of attempts) {
+    points = collectPointsFromImage(data, info, {
+      step,
+      alphaMin,
+      nearWhiteThr: attempt.nearWhiteThr,
+      nearBlackThr: attempt.nearBlackThr,
+      ignoreTransparent: attempt.ignoreTransparent,
+      ignoreNearWhite: attempt.ignoreNearWhite,
+      ignoreNearBlack: attempt.ignoreNearBlack
+    });
 
-      points.push({ rgb: [r, g, b], lab: rgbToLab(r, g, b) });
+    if (points.length > 0) {
+      appliedFallbackStage = attempt.fallbackStage;
+      break;
     }
   }
 
   if (points.length === 0) {
-    // 필터가 너무 강한 경우: 필터를 완화해서 재시도(최소한의 안전장치)
-    // 그래도 로고 케이스에선 흰/검 제외가 목적이므로, 여기서는 실패를 명확히 반환.
     return {
       ok: false,
-      reason: "No valid pixels after filtering. Relax thresholds or disable ignoreNearWhite/ignoreNearBlack.",
+      reason: "No valid pixels found in the logo image."
     };
   }
 
@@ -226,7 +300,7 @@ async function extractDominantColor(input, options = {}) {
   const dominantHex = rgbToHex(dominant.rgb[0], dominant.rgb[1], dominant.rgb[2]);
 
   if (!returnPalette) {
-    return { ok: true, dominantHex };
+    return { ok: true, dominantHex, fallbackStage: appliedFallbackStage };
   }
 
   const total = clusters.reduce((s, c) => s + c.count, 0);
@@ -235,7 +309,7 @@ async function extractDominantColor(input, options = {}) {
     ratio: c.count / total,
   }));
 
-  return { ok: true, dominantHex, palette };
+  return { ok: true, dominantHex, palette, fallbackStage: appliedFallbackStage };
 }
 
 module.exports = { extractDominantColor };

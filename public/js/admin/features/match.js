@@ -3,6 +3,24 @@ import { readImageAsDataUrl, shuffle } from "../core/utils.js";
 export function createMatchModule(ctx) {
   const { state, fetchJSON, wsPublish, showToast } = ctx;
 
+  function getSnapshot() {
+    return {
+      matchName: document.getElementById("match-name")?.value ?? "",
+      matchLogo: state.settings?.matchLogo || "",
+      series: document.getElementById("match-series")?.value ?? "",
+      firstPickTeamId: document.getElementById("first-pick")?.value ?? "",
+      enableHeroBan: !!document.getElementById("toggle-hero")?.checked,
+      enableMapPick: !!document.getElementById("toggle-map")?.checked,
+      mapPool: {
+        control: [...(state.settings?.mapPool?.control || [])],
+        hybrid: [...(state.settings?.mapPool?.hybrid || [])],
+        flashpoint: [...(state.settings?.mapPool?.flashpoint || [])],
+        push: [...(state.settings?.mapPool?.push || [])],
+        escort: [...(state.settings?.mapPool?.escort || [])]
+      }
+    };
+  }
+
   function updateMatchLogoPreview() {
     const preview = document.getElementById("match-logo-preview");
     if (!preview) return;
@@ -102,6 +120,11 @@ export function createMatchModule(ctx) {
       updateMatchLogoPreview();
     });
 
+    document.getElementById("match-logo-default").addEventListener("click", () => {
+      state.settings.matchLogo = "/img/icon/primary-logo.png";
+      updateMatchLogoPreview();
+    });
+
     document.getElementById("saveMatch").addEventListener("click", async () => {
       state.settings.matchName = document.getElementById("match-name").value;
       state.settings.matchLogo = state.settings.matchLogo || "";
@@ -124,6 +147,7 @@ export function createMatchModule(ctx) {
         history: state.history
       });
       toggleAreas();
+      ctx.unsaved?.sync("match");
       showToast("매치 설정이 저장되었습니다.");
     });
 
@@ -142,7 +166,7 @@ export function createMatchModule(ctx) {
       const confirmed = confirm("전체 초기화하시겠습니까?");
       if (!confirmed) return;
       await fetchJSON("/api/reset", { method: "POST" });
-      await ctx.refreshAllData();
+      await ctx.refreshAllData({ force: true });
       wsPublish({
         context: "settings",
         settings: state.settings,
@@ -164,5 +188,5 @@ export function createMatchModule(ctx) {
     });
   }
 
-  return { render, bind, toggleAreas };
+  return { render, bind, toggleAreas, getSnapshot };
 }

@@ -51,6 +51,14 @@ export function createInGameModule(ctx) {
   const getHeroByInputValue = (inputId) => heroByName(document.getElementById(inputId)?.value?.trim() || "");
   const getHeroFromCurrentState = (teamId) => getHeroById(state.current?.bans?.[teamId]);
 
+  function getSnapshot() {
+    return {
+      mapInput: document.getElementById("map-input")?.value?.trim() || "",
+      banTeam1: document.getElementById("ban-team1")?.value?.trim() || "",
+      banTeam2: document.getElementById("ban-team2")?.value?.trim() || ""
+    };
+  }
+
   function isHeroSelectable(teamId, hero) {
     if (!state.settings.enableHeroBan || !hero) return !state.settings.enableHeroBan;
 
@@ -263,6 +271,7 @@ export function createInGameModule(ctx) {
     if (!result?.ok) return;
     ctx.refreshStateFromServer().then(() => {
       render();
+      ctx.unsaved?.sync("ingame");
       if (message) showToast(message);
     });
   }
@@ -569,6 +578,8 @@ export function createInGameModule(ctx) {
       });
       if (ctx.views?.renderHistory) ctx.views.renderHistory();
       render();
+      ctx.unsaved?.sync("ingame");
+      ctx.unsaved?.sync("history");
       document.getElementById("finishModal").classList.remove("active");
       showToast("경기 결과가 저장되었습니다.");
     });
@@ -577,6 +588,7 @@ export function createInGameModule(ctx) {
   return {
     render,
     bind,
+    getSnapshot,
     getSelectableMaps,
     getSelectableHeroes,
     updateSideArea,

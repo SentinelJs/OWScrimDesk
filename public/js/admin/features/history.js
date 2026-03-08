@@ -1,6 +1,16 @@
 export function createHistoryModule(ctx) {
   const { state, fetchJSON, wsPublish, showToast } = ctx;
 
+  function getSnapshot() {
+    const rows = Array.from(document.querySelectorAll("#historyTable tbody tr"));
+    return rows.map((row) => ({
+      mapId: row.querySelector("[data-field='mapId']")?.value || "",
+      ban1: row.querySelector("[data-field='ban1']")?.value || "",
+      ban2: row.querySelector("[data-field='ban2']")?.value || "",
+      winner: row.querySelector("[data-field='winner']")?.value || "team1"
+    }));
+  }
+
   function render() {
     const tbody = document.querySelector("#historyTable tbody");
     tbody.innerHTML = "";
@@ -103,9 +113,10 @@ export function createHistoryModule(ctx) {
         history: state.history
       });
       render();
+      ctx.unsaved?.sync("history");
       showToast("기록이 저장되었습니다.");
     });
   }
 
-  return { render, bind };
+  return { render, bind, getSnapshot };
 }

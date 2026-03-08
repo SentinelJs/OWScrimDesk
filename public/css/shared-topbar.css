@@ -1,3 +1,19 @@
+@font-face {
+  font-family: "Freesentation";
+  src: url("/fonts/Freesentation-8ExtraBold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Koverwatch";
+  src: url("/fonts/koverwatch.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --bg: #1A1A1A;
   --text: #FAFAF8;
@@ -6,6 +22,7 @@
   --header-height: 135px;
   --ui-font-scale: 1.4;
   --shared-topbar-team-name-no-logo-offset: 16px;
+  --shared-topbar-display-font: "Freesentation", "Pretendard", "Noto Sans KR", system-ui, sans-serif;
 }
 
 .header {
@@ -15,7 +32,7 @@
   padding: 0;
   background: var(--bg);
   gap: 16px;
-  font-family: "Pretendard", "Noto Sans KR", system-ui, sans-serif;
+  font-family: var(--shared-topbar-display-font);
 }
 
 .team-block {
@@ -60,11 +77,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: "Pretendard", "Noto Sans KR", system-ui, sans-serif;
+  font-family: var(--shared-topbar-display-font);
   font-size: calc(28px * var(--ui-font-scale));
-  font-weight: 700;
+  /* font-weight: 700; */
   line-height: 1;
-  text-transform: uppercase;
   color: var(--text);
   padding: 0 16px;
   border: none;
@@ -126,6 +142,7 @@
   place-items: center;
   font-size: calc(48px * var(--ui-font-scale));
   font-weight: 800;
+  font-family: var(--shared-topbar-display-font);
 }
 
 .match-name {
@@ -136,7 +153,8 @@
   justify-content: center;
   text-align: center;
   font-size: 28px;
-  font-weight: 700;
+  /* font-weight: 700; */
+  font-family: "Koverwatch", var(--shared-topbar-display-font);
   letter-spacing: 0.04em;
   color: var(--text);
   padding: 0 12px;

@@ -3,6 +3,21 @@ import { readImageAsDataUrl } from "../core/utils.js";
 export function createTeamModule(ctx) {
   const { state, fetchJSON, wsPublish, showToast } = ctx;
 
+  function getSnapshot() {
+    return {
+      team1: {
+        name: document.getElementById("team1-name")?.value ?? "",
+        color: document.getElementById("team1-color")?.value ?? "",
+        logo: state.teams?.team1?.logo || ""
+      },
+      team2: {
+        name: document.getElementById("team2-name")?.value ?? "",
+        color: document.getElementById("team2-color")?.value ?? "",
+        logo: state.teams?.team2?.logo || ""
+      }
+    };
+  }
+
   function updateLogoPreview(teamId) {
     const preview = document.getElementById(`${teamId}-logo-preview`);
     if (!preview) return;
@@ -120,9 +135,10 @@ export function createTeamModule(ctx) {
         history: state.history
       });
       renderTeamIdentity();
+      ctx.unsaved?.sync("team");
       showToast("팀 정보가 저장되었습니다.");
     });
   }
 
-  return { render, bind };
+  return { render, bind, getSnapshot };
 }
