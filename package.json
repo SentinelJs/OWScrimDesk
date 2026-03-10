@@ -1,5 +1,5 @@
 {
-  "name": "ow2-scrim-overlay",
+  "name": "owscrimdesk",
   "version": "1.0.0",
   "private": true,
   "main": "server.js",

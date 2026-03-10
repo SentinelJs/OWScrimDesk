@@ -1,5 +1,5 @@
 const DEFAULT_SETTINGS = {
-  matchName: "OW2 Scrim",
+  matchName: "OWScrimDesk",
   matchLogo: "/img/icon/primary-logo.png",
   series: "Bo3",
   firstPickTeamId: "team1",
