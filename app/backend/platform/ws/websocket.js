@@ -1,6 +1,8 @@
 const WebSocket = require("ws");
 const { HttpError, parseAdminPublishPayload } = require("../../shared/contracts/schemas");
 
+const activeMessageSenders = new Set();
+
 function createMessageSender(wss) {
   function send(client, type, payload) {
     if (client.readyState === WebSocket.OPEN) {
@@ -23,6 +25,21 @@ function registerWebSocket(server, deps) {
 
   const wss = new WebSocket.Server({ server });
   const { send, broadcast } = createMessageSender(wss);
+  activeMessageSenders.add({ wss, send, broadcast });
+
+  function broadcastAll(type, payload) {
+    activeMessageSenders.forEach((sender) => {
+      sender.broadcast(type, payload);
+    });
+  }
+
+  wss.on("close", () => {
+    activeMessageSenders.forEach((sender) => {
+      if (sender.wss === wss) {
+        activeMessageSenders.delete(sender);
+      }
+    });
+  });
 
   wss.on("connection", (ws) => {
     ws.on("message", (message) => {
@@ -37,7 +54,7 @@ function registerWebSocket(server, deps) {
         if (data.type === "admin:publish") {
           const payload = parseAdminPublishPayload(data.payload);
           const result = adminPublishService.publish(payload);
-          broadcast("overlay:update", result.snapshot);
+          broadcastAll("overlay:update", result.snapshot);
           send(ws, "admin:ok", { ok: true });
           return;
         }

@@ -5,6 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "start:local": "node server.js",
+    "start:lan": "set LAN_ACCESSIBLE=true&& node server.js",
     "typecheck": "tsc --noEmit",
     "screenshot": "node docs/capture-screenshots.js"
   },

@@ -50,7 +50,9 @@ OWScrimDesk는 관리자 패널에서 상태를 변경하면 WebSocket을 통해
 `package.json` 기준 실행 스크립트:
 
 ```bash
-npm start        # 서버 실행
+npm start          # 로컬 서버 실행 (= npm run start:local)
+npm run start:local  # localhost:3000 고정 실행
+npm run start:lan    # localhost:3000 + LAN 랜덤 포트 동시 실행
 npm run typecheck  # 타입 검사
 ```
 
@@ -152,17 +154,16 @@ npm install
 
 ### 실행
 
-포트를 지정해 실행하려면 `PORT` 환경변수를 설정합니다.  
-지정하지 않으면 OS가 자동으로 빈 포트를 할당하며, 실제 포트는 터미널 출력에서 확인할 수 있습니다.
+기본 실행은 `localhost:3000` 고정입니다. OBS Browser Source는 이 주소를 계속 사용하면 됩니다.
 
 ```bash
-PORT=3000 npm start
+npm run start:local
 ```
 
-실행 후 터미널에 출력된 주소를 확인합니다.
+실행 후 터미널에 아래처럼 출력됩니다.
 
 ```
-Server running at http://localhost:3000
+Local server running at http://localhost:3000
 ```
 
 기본 화면 주소 (포트 3000 기준):
@@ -187,19 +188,29 @@ Server running at http://localhost:3000
 
 ### 🌐 같은 와이파이의 다른 기기에서 접속하기
 
-기본적으로 LAN IP 출력이 비활성화(`IS_LAN_ACCESSIBLE = false`)되어 있습니다.  
-LAN 접근을 활성화하려면 `app/backend/bootstrap/server.js`에서 아래 값을 변경합니다.
+LAN 접속이 필요할 때만 별도 랜덤 포트 서버를 추가로 열 수 있습니다.
 
-```js
-const IS_LAN_ACCESSIBLE = true;  // false → true 로 변경
+```bash
+npm run start:lan
 ```
 
-이후 서버 재실행 시 터미널에 LAN 주소가 함께 출력됩니다.
+이 모드에서는 아래 두 서버가 함께 동작합니다.
+
+- `http://localhost:3000` → 로컬/OBS 전용 고정 주소
+- `http://192.168.x.x:<랜덤포트>` → 같은 LAN 기기에서 접속할 주소
+
+실행 후 터미널 예시는 다음과 같습니다.
 
 ```
-Server running at http://localhost:3000
-LAN access: http://192.168.x.x:3000
+Local server running at http://localhost:3000
+LAN server running on random port 51234
+LAN access: http://192.168.x.x:51234
 ```
+
+이 구조를 쓰는 이유:
+
+- OBS는 항상 `localhost:3000`만 바라보면 되므로 주소를 다시 입력할 필요가 없습니다.
+- LAN 공개가 필요할 때만 포트 충돌 회피를 위해 랜덤 포트를 사용합니다.
 
 문제가 있을 때 확인:
 

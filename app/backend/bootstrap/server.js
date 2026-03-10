@@ -28,9 +28,11 @@ const {
   DATA_DIR,
   IN_GAME_ASSETS_DIR
 } = require("./paths");
-const IS_LAN_ACCESSIBLE = false;
-const requestedPort = Number(process.env.PORT);
-const PORT = Number.isInteger(requestedPort) && requestedPort > 0 ? requestedPort : 0;
+const IS_LAN_ACCESSIBLE = String(process.env.LAN_ACCESSIBLE || "false").toLowerCase() === "true";
+const LOCAL_HOST = "127.0.0.1";
+const LOCAL_PORT = 3000;
+const requestedLanPort = Number(process.env.PORT);
+const LAN_PORT = Number.isInteger(requestedLanPort) && requestedLanPort > 0 ? requestedLanPort : 0;
 
 ensureDir(DATA_DIR);
 
@@ -108,19 +110,31 @@ registerHttpRoutes(app, {
   fetchYouTubeDurationSecondsByVideoId
 });
 
-const server = http.createServer(app);
+function createBoundServer(host, port, onListening) {
+  const server = http.createServer(app);
 
-registerWebSocket(server, {
-  overlayService,
-  adminPublishService
+  registerWebSocket(server, {
+    overlayService,
+    adminPublishService
+  });
+
+  server.listen(port, host, () => {
+    const address = server.address();
+    const activePort = typeof address === "object" && address ? address.port : port;
+    onListening(activePort);
+  });
+
+  return server;
+}
+
+createBoundServer(LOCAL_HOST, LOCAL_PORT, (activePort) => {
+  console.log(`Local server running at http://localhost:${activePort}`);
 });
 
-server.listen(PORT, "0.0.0.0", () => {
-  const address = server.address();
-  const activePort = typeof address === "object" && address ? address.port : PORT;
-  console.log(`Server running at http://localhost:${activePort}`);
+if (IS_LAN_ACCESSIBLE) {
+  createBoundServer("0.0.0.0", LAN_PORT, (activePort) => {
+    console.log(`LAN server running on random port ${activePort}`);
 
-  if (IS_LAN_ACCESSIBLE) {
     const nets = os.networkInterfaces();
     const lanIps = [];
 
@@ -134,5 +148,5 @@ server.listen(PORT, "0.0.0.0", () => {
     lanIps.forEach((ip) => {
       console.log(`LAN access: http://${ip}:${activePort}`);
     });
-  }
-});
+  });
+}
