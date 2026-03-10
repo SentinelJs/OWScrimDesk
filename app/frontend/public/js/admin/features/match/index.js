@@ -148,7 +148,7 @@ export function createMatchModule(ctx) {
       });
       toggleAreas();
       ctx.unsaved?.sync("match");
-      showToast("매치 설정이 저장되었습니다.");
+      showToast("매치 설정이 저장되었습니다.", "success");
     });
 
     document.getElementById("selectAllMaps").addEventListener("click", () => {
@@ -159,7 +159,7 @@ export function createMatchModule(ctx) {
           .map((map) => map.id);
       });
       renderMapPool();
-      showToast("맵 풀을 전체 선택했습니다.");
+      showToast("맵 풀을 전체 선택했습니다.", "info");
     });
 
     document.getElementById("resetAll").addEventListener("click", async () => {
@@ -174,7 +174,7 @@ export function createMatchModule(ctx) {
         state: state.current,
         history: state.history
       });
-      showToast("초기화 완료");
+      showToast("초기화 완료", "success");
     });
 
     document.getElementById("toggle-hero").addEventListener("change", () => {

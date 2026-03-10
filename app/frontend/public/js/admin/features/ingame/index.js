@@ -5,6 +5,20 @@ export function createInGameModule(ctx) {
   const mapByName = (name) => findByName(state.assets.maps, name);
   const heroByName = (name) => findByName(state.assets.heroes, name);
 
+  function getMapInputValue() {
+    return document.getElementById("map-input")?.value?.trim() || "";
+  }
+
+  function getSelectedMapFromInput() {
+    return mapByName(getMapInputValue());
+  }
+
+  function isSelectedMapApplied() {
+    const selectedMap = getSelectedMapFromInput();
+    if (!selectedMap) return false;
+    return state.current.currentMapId === selectedMap.id;
+  }
+
   function computeAvailableModes(settings, history) {
     const mapPoolByMode = settings.mapPool || {};
     const validModes = ["control", "hybrid", "flashpoint", "push", "escort"];
@@ -53,7 +67,8 @@ export function createInGameModule(ctx) {
 
   function getSnapshot() {
     return {
-      mapInput: document.getElementById("map-input")?.value?.trim() || "",
+      mapInput: getMapInputValue(),
+      side: getSelectedSide(),
       banTeam1: document.getElementById("ban-team1")?.value?.trim() || "",
       banTeam2: document.getElementById("ban-team2")?.value?.trim() || ""
     };
@@ -258,7 +273,7 @@ export function createInGameModule(ctx) {
     state.current.banOrderManual = getSelectedBanOrder();
   }
 
-  async function publishInGameState(message, extraPayload = {}) {
+  async function publishInGameState(message, extraPayload = {}, toastType = "success") {
     const result = await wsPublish({
       context: "ingame",
       gameIndex: state.current.currentMatchIndex,
@@ -272,15 +287,15 @@ export function createInGameModule(ctx) {
     ctx.refreshStateFromServer().then(() => {
       render();
       ctx.unsaved?.sync("ingame");
-      if (message) showToast(message);
+      if (message) showToast(message, toastType);
     });
   }
 
-  function publishSwapState(message) {
+  function publishSwapState(message, toastType = "success") {
     publishInGameState(message, {
       skipMapPick: true,
       skipHeroBan: true
-    });
+    }, toastType);
   }
 
   function validateHeroBan(teamId, rawValue) {
@@ -361,7 +376,7 @@ export function createInGameModule(ctx) {
     });
 
     document.getElementById("map-input").addEventListener("change", () => {
-      const map = mapByName(document.getElementById("map-input").value.trim());
+      const map = getSelectedMapFromInput();
       updateSideArea(map ? map.mode : "");
       renderSidePickOwner();
       renderSwapManager();
@@ -369,6 +384,10 @@ export function createInGameModule(ctx) {
 
     document.querySelectorAll("input[name='side']").forEach((radio) => {
       radio.addEventListener("change", (event) => {
+        if (!isSelectedMapApplied()) {
+          showToast("맵 적용 전 공/수 선택은 임시 상태입니다. 맵 적용을 눌러 반영해주세요.", "warning");
+          return;
+        }
         state.current.side = event.target.value;
         state.current.attackTeam = computeAttackTeamFromCurrentSelection();
         applyStandardSwapState();
@@ -378,6 +397,10 @@ export function createInGameModule(ctx) {
     });
 
     document.getElementById("swap-team-btn").addEventListener("click", () => {
+      if (!isSelectedMapApplied()) {
+        showToast("맵 적용 후 팀 스왑을 사용할 수 있습니다.", "warning");
+        return;
+      }
       ensureOverlaySwapState();
       state.current.overlayTeamSwap = !state.current.overlayTeamSwap;
       renderSwapManager();
@@ -385,6 +408,10 @@ export function createInGameModule(ctx) {
     });
 
     document.getElementById("swap-role-btn").addEventListener("click", () => {
+      if (!isSelectedMapApplied()) {
+        showToast("맵 적용 후 공수 로고 스왑을 사용할 수 있습니다.", "warning");
+        return;
+      }
       ensureOverlaySwapState();
       state.current.overlayRoleSwap = !state.current.overlayRoleSwap;
       renderSwapManager();
@@ -426,7 +453,7 @@ export function createInGameModule(ctx) {
     });
 
     document.getElementById("applyMap").addEventListener("click", async () => {
-      const map = mapByName(document.getElementById("map-input").value.trim());
+      const map = getSelectedMapFromInput();
       if (state.settings.enableMapPick && !map) {
         return alert("맵을 선택해주세요.");
       }

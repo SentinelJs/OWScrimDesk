@@ -136,7 +136,7 @@ async function refreshAllData(options = {}) {
   ctx.unsaved.syncAll();
 
   if (showSuccessToast) {
-    showToast("최신 정보를 불러왔습니다.");
+    showToast("최신 정보를 불러왔습니다.", "info");
   }
   return true;
 }

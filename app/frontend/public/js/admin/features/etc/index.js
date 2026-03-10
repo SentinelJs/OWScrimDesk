@@ -367,7 +367,7 @@ export function createEtcModule(ctx) {
 
     ctx.unsaved?.sync("etc");
 
-    if (withToast) showToast("ETC 설정이 저장되었습니다.");
+    if (withToast) showToast("ETC 설정이 저장되었습니다.", "success");
   }
 
   function enqueuePersist(withToast = false) {
@@ -525,9 +525,9 @@ export function createEtcModule(ctx) {
 
     if (appliedCount > 0) {
       queueRealtimeSync(true);
-      showToast(`YouTube ${appliedCount}개 길이를 지속시간에 반영했습니다.`);
+      showToast(`YouTube ${appliedCount}개 길이를 지속시간에 반영했습니다.`, "info");
     } else {
-      showToast("YouTube 길이를 가져오지 못했습니다.");
+      showToast("YouTube 길이를 가져오지 못했습니다.", "warning");
     }
   }
 
@@ -549,7 +549,7 @@ export function createEtcModule(ctx) {
         await applyYoutubeDurationForAllRows();
       },
       () => {
-        showToast("시간 자동 삽입을 취소했습니다.");
+        showToast("시간 자동 삽입을 취소했습니다.", "info");
       }
     );
   }
@@ -657,7 +657,7 @@ export function createEtcModule(ctx) {
     const etc = snapshotDomToState();
     const validIndexes = getValidContentIndexes(etc.breakContents);
     if (validIndexes.length === 0) {
-      showToast("활성 콘텐츠(URL 포함)를 먼저 등록하세요.");
+      showToast("활성 콘텐츠(URL 포함)를 먼저 등록하세요.", "warning");
       return;
     }
 

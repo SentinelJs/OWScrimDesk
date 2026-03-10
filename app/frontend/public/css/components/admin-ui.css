@@ -682,29 +682,34 @@ button.danger:hover {
   line-height: 1.8;
 }
 
-.toast {
-  position: fixed;
-  right: 20px;
-  bottom: 24px;
-  background: var(--surface-2);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+.toastify.admin-toast {
   color: var(--text-primary);
   padding: 11px 16px;
   border-radius: var(--radius-md);
   font-size: var(--admin-control-font);
   font-weight: 500;
-  opacity: 0;
-  transform: translateY(10px) scale(0.97);
-  transition: opacity 0.2s ease, transform 0.2s ease;
-  pointer-events: none;
-  z-index: 999;
-  box-shadow: var(--shadow-md);
-  max-width: 280px;
+  line-height: 1.5;
+  max-width: 320px;
+  font-family: inherit;
+  backdrop-filter: blur(10px);
 }
 
-.toast.show {
-  opacity: 1;
-  transform: translateY(0) scale(1);
+.toastify.admin-toast.admin-toast--info {
+  background: linear-gradient(135deg, rgba(70, 212, 255, 0.96), rgba(58, 115, 255, 0.94));
+  border: 1px solid rgba(176, 231, 255, 0.38);
+  box-shadow: 0 14px 30px rgba(58, 115, 255, 0.24), var(--shadow-md);
+}
+
+.toastify.admin-toast.admin-toast--success {
+  background: linear-gradient(135deg, rgba(53, 214, 163, 0.96), rgba(21, 143, 119, 0.94));
+  border: 1px solid rgba(183, 255, 225, 0.34);
+  box-shadow: 0 14px 30px rgba(21, 143, 119, 0.22), var(--shadow-md);
+}
+
+.toastify.admin-toast.admin-toast--warning {
+  background: linear-gradient(135deg, rgba(255, 154, 92, 0.96), rgba(255, 111, 97, 0.94));
+  border: 1px solid rgba(255, 214, 184, 0.35);
+  box-shadow: 0 14px 30px rgba(255, 111, 97, 0.22), var(--shadow-md);
 }
 
 .divider {

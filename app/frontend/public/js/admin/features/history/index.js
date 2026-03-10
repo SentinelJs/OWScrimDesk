@@ -114,7 +114,7 @@ export function createHistoryModule(ctx) {
       });
       render();
       ctx.unsaved?.sync("history");
-      showToast("기록이 저장되었습니다.");
+      showToast("기록이 저장되었습니다.", "success");
     });
   }
 

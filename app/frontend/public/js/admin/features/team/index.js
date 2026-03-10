@@ -53,7 +53,7 @@ export function createTeamModule(ctx) {
       state.teams[teamId].color = result.color;
       document.getElementById(`${teamId}-color`).value = result.color;
       updateColorLabel(teamId);
-      showToast("로고 색상이 적용되었습니다.");
+      showToast("로고 색상이 적용되었습니다.", "success");
     } catch (error) {
       alert(error.message || "색상 추출 중 오류가 발생했습니다.");
     }
@@ -136,7 +136,7 @@ export function createTeamModule(ctx) {
       });
       renderTeamIdentity();
       ctx.unsaved?.sync("team");
-      showToast("팀 정보가 저장되었습니다.");
+      showToast("팀 정보가 저장되었습니다.", "success");
     });
   }
 
