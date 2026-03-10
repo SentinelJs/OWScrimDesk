@@ -1,0 +1,281 @@
+@import url("/css/foundations/tokens.css");
+@import url("/css/foundations/base.css");
+@import url("/css/components/admin-ui.css");
+
+body {
+  --admin-page-pad-x: 28px;
+  --admin-page-pad-top: 20px;
+  --admin-page-pad-bottom: 56px;
+  --admin-container-max: 1400px;
+  --admin-topbar-height: 56px;
+  --admin-topbar-gap: 20px;
+  --admin-topbar-pad-x: 28px;
+  --admin-brand-size: 15px;
+  --admin-tab-font: 13px;
+  --admin-tab-pad-y: 5px;
+  --admin-tab-pad-x: 14px;
+  --admin-status-font: 11px;
+  --admin-status-pad-y: 4px;
+  --admin-status-pad-x: 10px;
+  --admin-section-title-size: 18px;
+  --admin-section-sub-size: 12px;
+  --admin-card-pad: 20px;
+  --admin-card-title-size: 13px;
+  --admin-label-size: 12px;
+  --admin-control-font: 13px;
+  --admin-control-pad-y: 9px;
+  --admin-control-pad-x: 12px;
+  --admin-control-min-height: 0px;
+  --admin-color-input-size: 36px;
+  --admin-check-size: 14px;
+  --admin-button-font: 13px;
+  --admin-button-pad-y: 8px;
+  --admin-button-pad-x: 16px;
+  --admin-grid-gap: 16px;
+  --admin-section-gap: 20px;
+  --admin-info-font: 12px;
+  --admin-info-pad-y: 10px;
+  --admin-info-pad-x: 14px;
+  --admin-history-font: 13px;
+  --admin-history-head-font: 11px;
+  --admin-team-identity-font: 13px;
+  --admin-team-identity-pad-y: 9px;
+  --admin-team-identity-pad-x: 16px;
+  --admin-etc-table-font: 11px;
+  --admin-etc-heading-font: 12px;
+  --admin-etc-input-font: 11px;
+}
+
+.container {
+  padding: var(--admin-page-pad-top) var(--admin-page-pad-x) var(--admin-page-pad-bottom);
+  max-width: var(--admin-container-max);
+}
+
+.tab {
+  display: none;
+}
+
+.tab.active {
+  display: block;
+}
+
+.team-identity {
+  margin: 16px var(--admin-page-pad-x) 0;
+  padding: var(--admin-team-identity-pad-y) var(--admin-team-identity-pad-x);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: var(--admin-team-identity-font);
+  display: inline-flex;
+  gap: 20px;
+  align-items: center;
+}
+
+#tab-etc .grid.two {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+#tab-etc .grid.two > .card:first-child {
+  overflow-x: auto;
+}
+
+.etc-timer-grid {
+  margin-top: 6px;
+}
+
+.etc-content-table {
+  margin-top: 8px;
+  width: 100%;
+  min-width: 980px;
+}
+
+.etc-content-table th:nth-child(2),
+.etc-content-table td:nth-child(2) {
+  min-width: 120px;
+}
+
+.etc-content-table th:nth-child(3),
+.etc-content-table td:nth-child(3) {
+  min-width: 90px;
+}
+
+.etc-content-table th:nth-child(4),
+.etc-content-table td:nth-child(4) {
+  min-width: 320px;
+}
+
+.etc-content-table th:nth-child(5),
+.etc-content-table td:nth-child(5) {
+  min-width: 220px;
+}
+
+.etc-content-table th:nth-child(6),
+.etc-content-table td:nth-child(6),
+.etc-content-table th:nth-child(7),
+.etc-content-table td:nth-child(7),
+.etc-content-table th:nth-child(8),
+.etc-content-table td:nth-child(8) {
+  min-width: 54px;
+}
+
+.etc-content-table th,
+.etc-content-table td {
+  font-size: var(--admin-etc-table-font);
+  padding: 6px;
+}
+
+.etc-cell-center {
+  text-align: center;
+}
+
+.etc-duration-fields {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+}
+
+.etc-duration-input {
+  width: 72px;
+}
+
+.etc-content-table td input[type="text"],
+.etc-content-table td input[type="number"],
+.etc-content-table td select {
+  min-width: 0;
+  width: 100%;
+  font-size: var(--admin-etc-input-font);
+}
+
+.etc-content-table td input[type="checkbox"],
+.etc-content-table td input[type="radio"] {
+  width: var(--admin-check-size);
+  height: var(--admin-check-size);
+}
+
+.etc-content-table .icon-delete {
+  width: auto;
+  min-width: 34px;
+  padding: 4px 8px;
+  line-height: 1;
+}
+
+.etc-player-shell {
+  display: grid;
+  gap: 14px;
+}
+
+.etc-player-team h4 {
+  margin-bottom: 8px;
+  font-size: var(--admin-etc-heading-font);
+  letter-spacing: 0.3px;
+  color: var(--text-secondary);
+}
+
+.etc-player-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.etc-player-table th,
+.etc-player-table td {
+  border-bottom: 1px solid var(--border);
+  padding: 6px;
+  font-size: var(--admin-etc-table-font);
+  text-align: left;
+}
+
+.etc-player-table th:first-child,
+.etc-player-table td:first-child {
+  width: 30px;
+  text-align: center;
+}
+
+.etc-player-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.etc-player-table input {
+  padding: 6px 8px;
+  font-size: var(--admin-etc-input-font);
+  min-width: 0;
+}
+
+.section-heading-spaced {
+  margin-top: 14px;
+}
+
+.actions-row-sm {
+  margin-top: 10px;
+}
+
+@media (min-width: 1600px) {
+  body {
+    --admin-page-pad-x: 40px;
+    --admin-page-pad-top: 28px;
+    --admin-page-pad-bottom: 72px;
+    --admin-container-max: 1680px;
+    --admin-topbar-height: 64px;
+    --admin-topbar-gap: 24px;
+    --admin-topbar-pad-x: 40px;
+    --admin-brand-size: 17px;
+    --admin-tab-font: 15px;
+    --admin-tab-pad-y: 8px;
+    --admin-tab-pad-x: 18px;
+    --admin-status-font: 12px;
+    --admin-status-pad-y: 6px;
+    --admin-status-pad-x: 12px;
+    --admin-section-title-size: 22px;
+    --admin-section-sub-size: 13px;
+    --admin-card-pad: 24px;
+    --admin-card-title-size: 14px;
+    --admin-label-size: 13px;
+    --admin-control-font: 14px;
+    --admin-control-pad-y: 11px;
+    --admin-control-pad-x: 14px;
+    --admin-control-min-height: 44px;
+    --admin-color-input-size: 40px;
+    --admin-check-size: 16px;
+    --admin-button-font: 14px;
+    --admin-button-pad-y: 10px;
+    --admin-button-pad-x: 18px;
+    --admin-grid-gap: 20px;
+    --admin-section-gap: 24px;
+    --admin-info-font: 13px;
+    --admin-info-pad-y: 12px;
+    --admin-info-pad-x: 16px;
+    --admin-history-font: 14px;
+    --admin-history-head-font: 12px;
+    --admin-team-identity-font: 14px;
+    --admin-team-identity-pad-y: 11px;
+    --admin-team-identity-pad-x: 18px;
+    --admin-etc-table-font: 12px;
+    --admin-etc-heading-font: 13px;
+    --admin-etc-input-font: 12px;
+  }
+}
+
+@media (max-width: 1024px) {
+  body {
+    --admin-page-pad-x: 16px;
+    --admin-page-pad-top: 16px;
+    --admin-page-pad-bottom: 48px;
+  }
+
+  .container {
+    padding: var(--admin-page-pad-top) var(--admin-page-pad-x) var(--admin-page-pad-bottom);
+  }
+
+  .team-identity {
+    margin: 12px var(--admin-page-pad-x) 0;
+  }
+
+  .grid.two {
+    grid-template-columns: 1fr;
+  }
+}
