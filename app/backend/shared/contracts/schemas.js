@@ -106,6 +106,17 @@ function parseDominantColorBody(body) {
 }
 
 /**
+ * @param {unknown} body
+ */
+function parseImageUrlBody(body) {
+  const data = requireRecord(body, "요청 본문이 필요합니다.");
+  if (typeof data.url !== "string" || !data.url.trim()) {
+    throw new HttpError(400, "url 데이터가 필요합니다.");
+  }
+  return { url: data.url.trim() };
+}
+
+/**
  * @param {unknown} videoId
  */
 function parseVideoId(videoId) {
@@ -123,5 +134,6 @@ module.exports = {
   parseSettingsBody,
   parseStateBody,
   parseDominantColorBody,
+  parseImageUrlBody,
   parseVideoId
 };

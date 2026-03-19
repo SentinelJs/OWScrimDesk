@@ -307,6 +307,10 @@
       justify-content: center;
     }
 
+    .team-slot.no-logo .team-name-wrap {
+      max-width: 100%;
+    }
+
     .team-name {
       font-size: var(--team-name-size);
       line-height: 1;
@@ -320,6 +324,10 @@
     .team-slot.team2 .team-name {
       transform-origin: right center;
       text-align: right;
+    }
+
+    .team-slot.no-logo .team-name {
+      padding-inline: var(--team-name-no-logo-offset);
     }
   </style>
 </head>
@@ -489,12 +497,13 @@
       if (!src) {
         img.removeAttribute("src");
         img.classList.add("hidden");
-        return;
+        return false;
       }
       if (img.src !== src) {
         img.src = src;
       }
       img.classList.remove("hidden");
+      return true;
     }
 
     let fitTextScheduled = false;
@@ -868,10 +877,13 @@
       elements.scoreTeam1Name.textContent = name1;
       elements.scoreTeam2Name.textContent = name2;
 
-      setLogo(elements.team1Logo, team1.logo);
-      setLogo(elements.team2Logo, team2.logo);
+      const hasTeam1Logo = setLogo(elements.team1Logo, team1.logo);
+      const hasTeam2Logo = setLogo(elements.team2Logo, team2.logo);
       setLogo(elements.scoreTeam1Logo, team1.logo);
       setLogo(elements.scoreTeam2Logo, team2.logo);
+
+      elements.team1Slot.classList.toggle("no-logo", !hasTeam1Logo);
+      elements.team2Slot.classList.toggle("no-logo", !hasTeam2Logo);
 
       elements.scoreTeam1.textContent = String(score?.team1 || 0);
       elements.scoreTeam2.textContent = String(score?.team2 || 0);

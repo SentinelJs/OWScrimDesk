@@ -1,5 +1,7 @@
 import { readImageAsDataUrl } from "../../core/utils.js";
 
+const DEFAULT_TEAM_LOGO = "/img/icon/primary-logo.png";
+
 export function createTeamModule(ctx) {
   const { state, fetchJSON, wsPublish, showToast } = ctx;
 
@@ -28,6 +30,19 @@ export function createTeamModule(ctx) {
       img.src = logo;
       preview.appendChild(img);
     }
+  }
+
+  function syncLogoUrlInput(teamId) {
+    const input = document.getElementById(`${teamId}-logo-url`);
+    if (!input) return;
+    const logo = state.teams[teamId].logo || "";
+    input.value = logo.startsWith("data:") ? "" : logo;
+  }
+
+  function setTeamLogo(teamId, logo) {
+    state.teams[teamId].logo = logo;
+    updateLogoPreview(teamId);
+    syncLogoUrlInput(teamId);
   }
 
   function updateColorLabel(teamId) {
@@ -76,6 +91,8 @@ export function createTeamModule(ctx) {
     document.getElementById("team2-color-swatch").style.background = state.teams.team2.color;
     updateLogoPreview("team1");
     updateLogoPreview("team2");
+    syncLogoUrlInput("team1");
+    syncLogoUrlInput("team2");
     renderTeamIdentity();
   }
 
@@ -86,25 +103,79 @@ export function createTeamModule(ctx) {
     document.getElementById("team1-logo-file").addEventListener("change", async (event) => {
       const file = event.target.files?.[0];
       if (!file) return;
-      state.teams.team1.logo = await readImageAsDataUrl(file);
-      updateLogoPreview("team1");
+      setTeamLogo("team1", await readImageAsDataUrl(file));
     });
 
     document.getElementById("team2-logo-file").addEventListener("change", async (event) => {
       const file = event.target.files?.[0];
       if (!file) return;
-      state.teams.team2.logo = await readImageAsDataUrl(file);
-      updateLogoPreview("team2");
+      setTeamLogo("team2", await readImageAsDataUrl(file));
+    });
+
+    const applyLogoUrl = async (teamId) => {
+      const input = document.getElementById(`${teamId}-logo-url`);
+      const raw = input?.value || "";
+      const logo = raw.trim();
+      if (!logo) {
+        alert("로고 링크를 입력해주세요.");
+        input?.focus();
+        return;
+      }
+
+      try {
+        const result = await fetchJSON("/api/assets/image-data-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: logo })
+        });
+
+        if (!result?.ok || typeof result.dataUrl !== "string" || !result.dataUrl) {
+          throw new Error(result?.message || "이미지 변환 실패");
+        }
+
+        setTeamLogo(teamId, result.dataUrl);
+        showToast("링크 로고가 적용되었습니다.", "success");
+      } catch (error) {
+        alert(error.message || "링크 로고 적용 중 오류가 발생했습니다.");
+      }
+    };
+
+    document.getElementById("team1-logo-url-apply").addEventListener("click", async () => {
+      await applyLogoUrl("team1");
+    });
+
+    document.getElementById("team2-logo-url-apply").addEventListener("click", async () => {
+      await applyLogoUrl("team2");
+    });
+
+    document.getElementById("team1-logo-url").addEventListener("keydown", async (event) => {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      await applyLogoUrl("team1");
+    });
+
+    document.getElementById("team2-logo-url").addEventListener("keydown", async (event) => {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      await applyLogoUrl("team2");
+    });
+
+    document.getElementById("team1-logo-default").addEventListener("click", () => {
+      setTeamLogo("team1", DEFAULT_TEAM_LOGO);
+      showToast("기본 로고가 적용되었습니다.", "info");
+    });
+
+    document.getElementById("team2-logo-default").addEventListener("click", () => {
+      setTeamLogo("team2", DEFAULT_TEAM_LOGO);
+      showToast("기본 로고가 적용되었습니다.", "info");
     });
 
     document.getElementById("team1-logo-clear").addEventListener("click", () => {
-      state.teams.team1.logo = "";
-      updateLogoPreview("team1");
+      setTeamLogo("team1", "");
     });
 
     document.getElementById("team2-logo-clear").addEventListener("click", () => {
-      state.teams.team2.logo = "";
-      updateLogoPreview("team2");
+      setTeamLogo("team2", "");
     });
 
     document.getElementById("team1-logo-color").addEventListener("click", () => {

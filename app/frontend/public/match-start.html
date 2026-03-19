@@ -326,10 +326,15 @@
       
       requestAnimationFrame(() => {
         const containerWidth = containerEl.clientWidth;
+        if (containerWidth <= 0) return;
         const textWidth = nameEl.scrollWidth;
+        const styles = window.getComputedStyle(nameEl);
+        const marginLeft = Number.parseFloat(styles.marginLeft) || 0;
+        const marginRight = Number.parseFloat(styles.marginRight) || 0;
+        const totalRequiredWidth = textWidth + marginLeft + marginRight;
         
-        if (textWidth > containerWidth) {
-          const scale = containerWidth / textWidth;
+        if (totalRequiredWidth > containerWidth) {
+          const scale = containerWidth / totalRequiredWidth;
           nameEl.style.transform = `scale(${scale})`;
         }
       });

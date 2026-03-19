@@ -6,8 +6,69 @@ const {
   parseSettingsBody,
   parseStateBody,
   parseDominantColorBody,
+  parseImageUrlBody,
   parseVideoId
 } = require("../../shared/contracts/schemas");
+
+async function fetchImageAsDataUrl(rawUrl, baseOrigin) {
+  if (typeof rawUrl !== "string" || !rawUrl.trim()) {
+    throw new HttpError(400, "url 데이터가 필요합니다.");
+  }
+
+  let resolved;
+  try {
+    resolved = new URL(rawUrl, baseOrigin);
+  } catch {
+    throw new HttpError(400, "유효한 이미지 URL이 아닙니다.");
+  }
+
+  if (!["http:", "https:"].includes(resolved.protocol)) {
+    throw new HttpError(400, "http/https URL만 지원합니다.");
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+
+  try {
+    const response = await fetch(resolved.toString(), {
+      method: "GET",
+      signal: controller.signal,
+      headers: {
+        "User-Agent": "OWScrimDesk/1.0"
+      }
+    });
+
+    if (!response.ok) {
+      throw new HttpError(422, `이미지 다운로드 실패 (${response.status})`);
+    }
+
+    const contentType = String(response.headers.get("content-type") || "").toLowerCase();
+    if (!contentType.startsWith("image/")) {
+      throw new HttpError(422, "이미지 URL이 아닙니다.");
+    }
+
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (!bytes.length) {
+      throw new HttpError(422, "이미지 데이터가 비어 있습니다.");
+    }
+
+    const maxBytes = 8 * 1024 * 1024;
+    if (bytes.length > maxBytes) {
+      throw new HttpError(413, "이미지 용량이 너무 큽니다. (최대 8MB)");
+    }
+
+    const base64 = Buffer.from(bytes).toString("base64");
+    return `data:${contentType};base64,${base64}`;
+  } catch (error) {
+    if (error instanceof HttpError) throw error;
+    if (error?.name === "AbortError") {
+      throw new HttpError(504, "이미지 다운로드 시간이 초과되었습니다.");
+    }
+    throw new HttpError(500, error?.message || "이미지 변환 실패");
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 function registerHttpRoutes(app, deps) {
   const {
@@ -138,6 +199,20 @@ function registerHttpRoutes(app, deps) {
         return res.status(error.status).json({ ok: false, message: error.message });
       }
       res.status(500).json({ ok: false, message: error.message || "색상 추출 오류" });
+    }
+  });
+
+  app.post("/api/assets/image-data-url", async (req, res) => {
+    try {
+      const { url } = parseImageUrlBody(req.body);
+      const origin = `${req.protocol}://${req.get("host")}`;
+      const dataUrl = await fetchImageAsDataUrl(url, origin);
+      return res.json({ ok: true, dataUrl });
+    } catch (error) {
+      if (error instanceof HttpError) {
+        return res.status(error.status).json({ ok: false, message: error.message });
+      }
+      return res.status(500).json({ ok: false, message: error?.message || "이미지 변환 실패" });
     }
   });
 
