@@ -1,4 +1,5 @@
 export type TeamId = "team1" | "team2";
+export type HistoryWinner = TeamId | "draw" | "";
 export type BanOrder = "A_FIRST" | "B_FIRST" | "";
 export type MapMode = "control" | "hybrid" | "flashpoint" | "push" | "escort" | "";
 
@@ -87,7 +88,7 @@ export interface HistoryEntry {
   index?: number;
   mapId?: string;
   mapMode?: string;
-  winner?: TeamId | "";
+  winner?: HistoryWinner;
   bans?: { team1?: string; team2?: string };
 }
 

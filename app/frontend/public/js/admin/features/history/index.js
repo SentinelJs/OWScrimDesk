@@ -46,6 +46,7 @@ export function createHistoryModule(ctx) {
           <select data-field="winner">
             <option value="team1" ${item.winner === "team1" ? "selected" : ""}>Team1</option>
             <option value="team2" ${item.winner === "team2" ? "selected" : ""}>Team2</option>
+            <option value="draw" ${item.winner === "draw" ? "selected" : ""}>무승부</option>
           </select>
         </td>
         <td><button class="secondary" data-action="delete">삭제</button></td>

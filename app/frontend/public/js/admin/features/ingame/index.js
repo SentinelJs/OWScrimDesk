@@ -221,7 +221,11 @@ export function createInGameModule(ctx) {
     const ownerName = owner === "team2" ? state.teams.team2.name : state.teams.team1.name;
     const reason = state.current.banChoiceOwnerReason === "PREV_LOSER"
       ? "전 경기 패배팀"
-      : "맵1: 시리즈 시작 선택권 팀";
+      : state.current.banChoiceOwnerReason === "LAST_LOSER_AFTER_DRAW"
+        ? "직전 무승부로 마지막 패배팀 유지"
+        : state.current.banChoiceOwnerReason === "FALLBACK"
+          ? "기록 누락으로 기본값 적용"
+          : "맵1: 시리즈 시작 선택권 팀";
     if (info) {
       info.textContent = `영웅밴 선택권 팀: ${ownerName} (${reason})`;
       info.style.display = "block";
@@ -258,6 +262,8 @@ export function createInGameModule(ctx) {
     const ownerName = owner === "team2" ? state.teams.team2.name : state.teams.team1.name;
     const reasonText = reason === "PREV_LOSER"
       ? "전 경기 패배팀"
+      : reason === "LAST_LOSER_AFTER_DRAW"
+        ? "직전 무승부로 마지막 패배팀 유지"
       : reason === "FALLBACK"
         ? "기록 누락으로 기본값 적용"
         : "맵1: 시리즈 시작 선택권 팀";
@@ -575,7 +581,7 @@ export function createInGameModule(ctx) {
         winner
       });
       state.current.currentMatchIndex += 1;
-      state.current.lastWinnerTeamId = winner;
+      state.current.lastWinnerTeamId = winner === "team1" || winner === "team2" ? winner : "";
       state.current.currentMapId = "";
       state.current.currentMapName = "";
       state.current.currentMapMode = "";

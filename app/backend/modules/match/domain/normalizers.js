@@ -59,6 +59,32 @@ const DEFAULT_STATE = {
   lastWinnerTeamId: ""
 };
 
+function normalizeWinner(value) {
+  return value === "team1" || value === "team2" || value === "draw"
+    ? value
+    : "";
+}
+
+function normalizeHistory(history) {
+  if (!Array.isArray(history)) return [];
+
+  return history.map((entry, index) => {
+    const source = entry && typeof entry === "object" ? entry : {};
+    const rawIndex = Number(source.index);
+    return {
+      ...source,
+      index: Number.isFinite(rawIndex) ? Math.max(1, Math.floor(rawIndex)) : index + 1,
+      mapId: typeof source.mapId === "string" ? source.mapId : "",
+      mapMode: typeof source.mapMode === "string" ? source.mapMode : "",
+      winner: normalizeWinner(source.winner),
+      bans: {
+        team1: typeof source.bans?.team1 === "string" ? source.bans.team1 : "",
+        team2: typeof source.bans?.team2 === "string" ? source.bans.team2 : ""
+      }
+    };
+  });
+}
+
 function normalizeEtcSettings(etc) {
   const source = etc || {};
   const players = source.players || {};
@@ -169,6 +195,8 @@ module.exports = {
   DEFAULT_SETTINGS,
   DEFAULT_TEAMS,
   DEFAULT_STATE,
+  normalizeHistory,
   normalizeSettings,
+  normalizeWinner,
   normalizeEtcSettings
 };

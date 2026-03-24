@@ -125,6 +125,7 @@
     }
 
     .map-card.state-win::after,
+    .map-card.state-draw::after,
     .map-card.state-selecting::after {
       border-color: var(--status-border-color);
     }
@@ -195,6 +196,11 @@
     .overlay-badge.win-badge {
       background: transparent;
       padding: 0;
+    }
+
+    .overlay-badge.draw-badge {
+      background: rgba(17, 24, 39, 0.82);
+      border: 1px solid rgba(255, 255, 255, 0.18);
     }
 
     .map-overlay.only-name .overlay-badge {
@@ -282,6 +288,7 @@
     }
 
     .state-win .map-label,
+    .state-draw .map-label,
     .state-selecting .map-label {
       background: var(--label-bg);
     }
@@ -417,14 +424,19 @@
 
       emptyState.classList.add("hidden");
 
+      const drawMapSet = new Set();
+      const playedMapMode = new Map();
       const winMapSet = new Map();
-      const winMapMode = new Map();
       history.forEach((game) => {
-        if (!game.mapId || !game.winner) return;
-        winMapSet.set(game.mapId, game.winner);
+        if (!game.mapId) return;
         const inferredMode = game.mapMode || assets.maps.find((map) => map.id === game.mapId)?.mode || "";
         if (inferredMode) {
-          winMapMode.set(game.mapId, inferredMode);
+          playedMapMode.set(game.mapId, inferredMode);
+        }
+        if (game.winner === "team1" || game.winner === "team2") {
+          winMapSet.set(game.mapId, game.winner);
+        } else if (game.winner === "draw") {
+          drawMapSet.add(game.mapId);
         }
       });
 
@@ -434,9 +446,11 @@
 
       const modeHasSelectedMap = {};
       MODE_ORDER.forEach((mode) => {
-        const hasWin = [...winMapMode.entries()].some(([mapId, mapMode]) => mapMode === mode && winMapSet.has(mapId));
+        const hasPlayed = [...playedMapMode.entries()].some(([mapId, mapMode]) => {
+          return mapMode === mode && (winMapSet.has(mapId) || drawMapSet.has(mapId));
+        });
         const hasSelecting = currentMode === mode && !!currentSelectedMapId;
-        modeHasSelectedMap[mode] = hasWin || hasSelecting;
+        modeHasSelectedMap[mode] = hasPlayed || hasSelecting;
       });
       const selectableMapIdSet = selectableMapIds ? new Set(selectableMapIds) : null;
 
@@ -467,6 +481,7 @@
           const status = getMapStatus(
             map.id,
             mode,
+            drawMapSet,
             winMapSet,
             currentSelectedMapId,
             currentMode,
@@ -478,7 +493,7 @@
           const card = document.createElement("div");
           card.className = `map-card state-${status.type}`;
 
-          if (status.type === "win") {
+          if (status.type === "win" || status.type === "draw") {
             card.style.setProperty("--status-border-color", status.team.color);
           }
           if (status.type === "selecting") {
@@ -497,16 +512,26 @@
 
           if (status.type === "win") {
             overlay.style.background = hexToRgba(status.team.color, 0.45);
+          } else if (status.type === "draw") {
+            overlay.style.background = "rgba(55, 65, 81, 0.55)";
           }
 
-          if (status.type === "win" || status.type === "selecting") {
+          if (status.type === "win" || status.type === "selecting" || status.type === "draw") {
             const badge = document.createElement("div");
             badge.className = "overlay-badge";
             if (status.type === "win") {
               badge.classList.add("win-badge");
+            } else if (status.type === "draw") {
+              badge.classList.add("draw-badge");
             }
 
-            if (status.team.logo) {
+            if (status.type === "draw") {
+              overlay.classList.add("only-name");
+              const name = document.createElement("div");
+              name.className = "overlay-team-name large";
+              name.textContent = "DRAW";
+              badge.appendChild(name);
+            } else if (status.team.logo) {
               const logo = document.createElement("img");
               logo.className = "overlay-team-logo";
               if (status.type === "win") {
@@ -545,6 +570,8 @@
 
           if (status.type === "win" || status.type === "selecting") {
             label.style.background = status.team.color;
+          } else if (status.type === "draw") {
+            label.style.background = "#374151";
           }
 
           card.appendChild(label);
@@ -593,19 +620,41 @@
       return pools;
     }
 
+    function getLosingTeamByWinner(winner) {
+      if (winner === "team1") return "team2";
+      if (winner === "team2") return "team1";
+      return "";
+    }
+
+    function findLastLosingTeam(history, beforeGameIndex) {
+      for (let index = beforeGameIndex - 1; index >= 1; index -= 1) {
+        const game = history.find((item) => item.index === index);
+        const losingTeam = getLosingTeamByWinner(game?.winner);
+        if (losingTeam) return losingTeam;
+      }
+      return "";
+    }
+
     function getPickingTeam(settings, history, gameIndex) {
       const initial = settings.firstPickTeamId || "team1";
       if (gameIndex <= 1) return initial;
       const prev = history.find((game) => game.index === gameIndex - 1);
-      if (!prev || !prev.winner) return initial;
-      return prev.winner === "team1" ? "team2" : "team1";
+      const prevLosingTeam = getLosingTeamByWinner(prev?.winner);
+      if (prevLosingTeam) return prevLosingTeam;
+      if (prev?.winner === "draw") {
+        return findLastLosingTeam(history, gameIndex - 1) || initial;
+      }
+      return initial;
     }
 
-    function getMapStatus(mapId, mode, winMapSet, currentSelectedMapId, currentMode, modeHasSelectedMap, selectedBy, teams, selectableMapIdSet) {
+    function getMapStatus(mapId, mode, drawMapSet, winMapSet, currentSelectedMapId, currentMode, modeHasSelectedMap, selectedBy, teams, selectableMapIdSet) {
       if (winMapSet.has(mapId)) {
         const winner = winMapSet.get(mapId);
         const team = winner === "team2" ? teams.team2 : teams.team1;
         return { type: "win", team };
+      }
+      if (drawMapSet.has(mapId)) {
+        return { type: "draw", team: { color: "rgba(255, 255, 255, 0.68)" } };
       }
       if (mapId === currentSelectedMapId) {
         const team = selectedBy === "team2" ? teams.team2 : teams.team1;

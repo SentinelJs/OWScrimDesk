@@ -1,5 +1,23 @@
 const VALID_MAP_MODES = ["control", "hybrid", "flashpoint", "push", "escort"];
 
+function getLosingTeamByWinner(winner) {
+  if (winner === "team1") return "team2";
+  if (winner === "team2") return "team1";
+  return "";
+}
+
+function findGameByIndex(historyGames, index) {
+  return historyGames.find((game) => game.index === index) || null;
+}
+
+function findLastLosingTeam(historyGames, beforeGameIndex) {
+  for (let index = beforeGameIndex - 1; index >= 1; index -= 1) {
+    const losingTeam = getLosingTeamByWinner(findGameByIndex(historyGames, index)?.winner);
+    if (losingTeam) return losingTeam;
+  }
+  return "";
+}
+
 function validateMapPick({ enableMapPick, mode, mapId, settings, historyGames }) {
   if (!enableMapPick) {
     return { ok: true };
@@ -140,12 +158,18 @@ function getSidePickOwner({ gameIndex, initialLeadTeam, historyGames }) {
   if (gameIndex === 1) {
     return { ownerTeam: initialLeadTeam, reason: "MAP1_INITIAL" };
   }
-  const prev = historyGames.find((game) => game.index === gameIndex - 1);
-  if (!prev || !prev.winner) {
-    return { ownerTeam: initialLeadTeam, reason: "FALLBACK" };
+  const prev = findGameByIndex(historyGames, gameIndex - 1);
+  const prevLoser = getLosingTeamByWinner(prev?.winner);
+  if (prevLoser) {
+    return { ownerTeam: prevLoser, reason: "PREV_LOSER" };
   }
-  const ownerTeam = prev.winner === "team1" ? "team2" : "team1";
-  return { ownerTeam, reason: "PREV_LOSER" };
+  if (prev?.winner === "draw") {
+    const lastLosingTeam = findLastLosingTeam(historyGames, gameIndex - 1);
+    if (lastLosingTeam) {
+      return { ownerTeam: lastLosingTeam, reason: "LAST_LOSER_AFTER_DRAW" };
+    }
+  }
+  return { ownerTeam: initialLeadTeam, reason: "FALLBACK" };
 }
 
 module.exports = {

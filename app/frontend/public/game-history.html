@@ -219,6 +219,10 @@
       text-align: center;
     }
 
+    .winner-badge.draw-badge {
+      gap: 0;
+    }
+
     .winner-logo {
       width: clamp(60px, 10vw, 110px);
       height: clamp(60px,10vw, 110px);
@@ -615,21 +619,24 @@
           winnerArea.className = "winner-area";
 
           if (played && played.winner) {
-            const team = playedWinnerTeam || (played.winner === "team2" ? safeTeams.team2 : safeTeams.team1);
             const badge = document.createElement("div");
             badge.className = "winner-badge";
-
-            if (team.logo) {
-              const logo = document.createElement("img");
-              logo.className = "winner-logo";
-              logo.src = team.logo;
-              logo.alt = team.name;
-              badge.appendChild(logo);
-            }
-
             const winnerName = document.createElement("div");
             winnerName.className = "winner-name";
-            winnerName.textContent = team.name;
+            if (played.winner === "draw") {
+              badge.classList.add("draw-badge");
+              winnerName.textContent = "DRAW";
+            } else {
+              const team = playedWinnerTeam || (played.winner === "team2" ? safeTeams.team2 : safeTeams.team1);
+              if (team.logo) {
+                const logo = document.createElement("img");
+                logo.className = "winner-logo";
+                logo.src = team.logo;
+                logo.alt = team.name;
+                badge.appendChild(logo);
+              }
+              winnerName.textContent = team.name;
+            }
             badge.appendChild(winnerName);
 
             winnerArea.appendChild(badge);

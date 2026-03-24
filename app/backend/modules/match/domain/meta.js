@@ -34,17 +34,13 @@ function applyBanPriorityMeta({ settings, state, history }) {
   }
 
   normalizeMatchIndex(state, history);
-  const gameIndex = state.currentMatchIndex;
-  const initialLeadTeam = settings.firstPickTeamId;
-  const prev = gameIndex > 1 ? history.find((game) => game.index === gameIndex - 1) : null;
-
-  if (gameIndex === 1 || !prev || !prev.winner) {
-    state.banChoiceOwnerAuto = initialLeadTeam;
-    state.banChoiceOwnerReason = "MAP1_INITIAL";
-  } else {
-    state.banChoiceOwnerAuto = prev.winner === "team1" ? "team2" : "team1";
-    state.banChoiceOwnerReason = "PREV_LOSER";
-  }
+  const { ownerTeam, reason } = getSidePickOwner({
+    gameIndex: state.currentMatchIndex,
+    initialLeadTeam: settings.firstPickTeamId,
+    historyGames: history
+  });
+  state.banChoiceOwnerAuto = ownerTeam;
+  state.banChoiceOwnerReason = reason;
 
   state.banChoiceOwner = ["team1", "team2"].includes(state.banChoiceOwnerManual)
     ? state.banChoiceOwnerManual

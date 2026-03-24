@@ -12,11 +12,12 @@
  *     resetStore: () => StoreData
  *   },
  *   normalizeSettings: (value: unknown) => any,
+ *   normalizeHistory: (history: unknown) => StoreData["history"],
  *   applyAllMeta: (data: StoreData) => void
  * }} deps
  */
 function createAdminStateService(deps) {
-  const { repository, normalizeSettings, applyAllMeta } = deps;
+  const { repository, normalizeSettings, normalizeHistory, applyAllMeta } = deps;
 
   function getSettings() {
     return repository.loadStore().settings;
@@ -42,7 +43,7 @@ function createAdminStateService(deps) {
    */
   function updateHistory(history) {
     const store = repository.loadStore();
-    store.history = history;
+    store.history = normalizeHistory(history);
     applyAllMeta(store);
     repository.saveStore(store);
     return store;

@@ -9,6 +9,7 @@ const {
   DEFAULT_SETTINGS,
   DEFAULT_TEAMS,
   DEFAULT_STATE,
+  normalizeHistory,
   normalizeSettings
 } = require("../modules/match/domain/normalizers");
 const {
@@ -71,6 +72,7 @@ app.use(express.json({ limit: "5mb" }));
 
 const repository = createJsonRepository({
   dataDir: DATA_DIR,
+  normalizeHistory,
   normalizeSettings,
   DEFAULT_SETTINGS,
   DEFAULT_TEAMS,
@@ -87,6 +89,7 @@ const overlayService = createOverlayService({
 
 const adminStateService = createAdminStateService({
   repository,
+  normalizeHistory,
   normalizeSettings,
   applyAllMeta
 });
